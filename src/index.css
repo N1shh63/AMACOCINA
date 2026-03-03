@@ -414,3 +414,51 @@ input, textarea, select, button { font: inherit; }
 .footerBrand { font-weight: 900; color: rgba(255,255,255,0.92); }
 .footerText { margin-top: 6px; color: rgba(255,255,255,0.70); }
 .footerRight { text-align: right; }
+
+/* ===== Responsive: Navbar ===== */
+@media (max-width: 520px) {
+  nav .navWrap {
+    padding: 10px 12px !important;
+  }
+
+  nav .brandTitle {
+    font-size: 16px !important;
+  }
+
+  nav .brandSub {
+    font-size: 11px !important;
+  }
+
+  nav .navLinks {
+    gap: 8px !important;
+  }
+
+  nav .navPill {
+    padding: 9px 10px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ===== Responsive: Navbar ===== */
+@media (max-width: 520px) {
+  nav .navWrap {
+    padding: 10px 12px !important;
+  }
+
+  nav .brandTitle {
+    font-size: 16px !important;
+  }
+
+  nav .brandSub {
+    font-size: 11px !important;
+  }
+
+  nav .navLinks {
+    gap: 8px !important;
+  }
+
+  nav .navPill {
+    padding: 9px 10px !important;
+    font-size: 12px !important;
+  }
+}

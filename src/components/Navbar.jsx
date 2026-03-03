@@ -1,53 +1,170 @@
-import { Link, NavLink } from "react-router-dom";
-import { useCart } from "../store/CartContext";
+// src/components/Navbar.jsx
+import { Link, useLocation } from "react-router-dom"
+import { useCart } from "../store/CartContext"
 
 export default function Navbar() {
-  const { totalItems } = useCart();
+  const { totalItems } = useCart()
+  const location = useLocation()
 
-  const linkBase =
-    "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition";
-  const linkIdle = "text-neutral-200 hover:bg-white/10 hover:text-white";
-  const linkActive = "bg-white/12 text-white";
+  const isActive = (path) => location.pathname === path
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl">🍽</span>
-          <div className="leading-tight">
-            <div className="text-base font-extrabold text-white">AmaCocina</div>
-            <div className="text-xs text-neutral-400">
-              Comida casera · Pedido simple
-            </div>
+    <nav
+      style={{
+        background: "#5C3D2E",
+        color: "white",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        borderBottom: "1px solid rgba(255,255,255,0.10)",
+      }}
+    >
+      <div
+        className="navWrap"
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "12px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        {/* Brand */}
+        <Link
+          to="/"
+          style={{
+            textDecoration: "none",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <span
+            style={{
+              width: 36,
+              height: 36,
+              display: "grid",
+              placeItems: "center",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.20)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              flex: "0 0 auto",
+            }}
+          >
+            🍽
+          </span>
+
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <span
+              className="brandTitle"
+              style={{
+                fontSize: 18,
+                fontWeight: 900,
+                lineHeight: "18px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              AmaCocina
+            </span>
+            <span
+              className="brandSub"
+              style={{
+                fontSize: 12,
+                opacity: 0.85,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Cocina casera · Pedido simple
+            </span>
           </div>
         </Link>
 
-        <nav className="flex items-center gap-2">
-          <NavLink
+        {/* Links */}
+        <div
+          className="navLinks"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            flex: "0 0 auto",
+          }}
+        >
+          <Link
             to="/"
-            end
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : linkIdle}`
-            }
+            className="navPill"
+            style={{
+              textDecoration: "none",
+              color: "white",
+              fontWeight: 900,
+              fontSize: 13,
+              padding: "10px 12px",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: isActive("/") ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.06)",
+            }}
           >
             Menú
-          </NavLink>
+          </Link>
 
-          <NavLink
+          <Link
             to="/cart"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : linkIdle} relative`
-            }
+            className="navPill"
+            style={{
+              textDecoration: "none",
+              color: "white",
+              fontWeight: 900,
+              fontSize: 13,
+              padding: "10px 12px",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: isActive("/cart")
+                ? "rgba(0,0,0,0.22)"
+                : "rgba(255,255,255,0.06)",
+              position: "relative",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+            }}
           >
             🛒 Carrito
+
+            {/* Badge flotante */}
             {totalItems > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-orange-500 px-1 text-xs font-extrabold text-white shadow-lg">
+              <span
+                style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -8,
+                  minWidth: 22,
+                  height: 22,
+                  padding: "0 6px",
+                  borderRadius: 999,
+                  background: "#E36414",
+                  color: "#111",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                  boxShadow: "0 10px 20px rgba(0,0,0,0.35)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                }}
+              >
                 {totalItems}
               </span>
             )}
-          </NavLink>
-        </nav>
+          </Link>
+        </div>
       </div>
-    </header>
-  );
+    </nav>
+  )
 }
