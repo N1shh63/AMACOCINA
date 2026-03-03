@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "build": "echo \"no build step\""
   },
   "dependencies": {
     "cors": "^2.8.5",

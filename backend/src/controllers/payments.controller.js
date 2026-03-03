@@ -22,7 +22,7 @@ function normalizeItem(item) {
     title: String(item.title ?? "Item"),
     quantity: Number(item.quantity ?? 1),
     unit_price: Number(item.unit_price ?? 0),
-    currency_id: "ARS"
+    currency_id: "ARS",
   };
 }
 
@@ -36,23 +36,37 @@ async function createPreference(req, res, next) {
     const FRONT_URL = (process.env.FRONT_URL || "http://127.0.0.1:5173").replace(/\/$/, "");
     const BACK_URL = (process.env.BACK_URL || "http://127.0.0.1:4000").replace(/\/$/, "");
 
+    const IS_PROD = process.env.NODE_ENV === "production";
+
+    // Webhook público (prioridad: MP_WEBHOOK_URL, sino BACK_URL + ruta)
+    const NOTIFICATION_URL = (
+      process.env.MP_WEBHOOK_URL || `${BACK_URL}/webhooks/mercadopago`
+    ).replace(/\/$/, "");
+
     const back_urls = {
       success: `${FRONT_URL}/checkout/success`,
       failure: `${FRONT_URL}/checkout/failure`,
-      pending: `${FRONT_URL}/checkout/pending`
+      pending: `${FRONT_URL}/checkout/pending`,
     };
 
-    // ✅ En local NO mandamos notification_url (MP la rechaza si no es pública)
-    // ✅ En local NO mandamos auto_return (MP valida estricto)
     const body = {
       items: items.map(normalizeItem),
       back_urls,
+
+      // En prod habilitamos el circuito completo
+      ...(IS_PROD
+        ? {
+            auto_return: "approved",
+            notification_url: NOTIFICATION_URL,
+          }
+        : {}),
+
       metadata: {
         customer: customer || null,
         notes: notes || null,
         source: "amacocina-web",
-        back_end: BACK_URL
-      }
+        back_end: BACK_URL,
+      },
     };
 
     console.log("[MP] preference body ->", JSON.stringify(body, null, 2));
@@ -65,7 +79,9 @@ async function createPreference(req, res, next) {
       preference_id: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
-      back_urls_used: back_urls
+      back_urls_used: back_urls,
+      mode: IS_PROD ? "production" : "local",
+      notification_url_used: IS_PROD ? NOTIFICATION_URL : null,
     });
   } catch (err) {
     next(err);
