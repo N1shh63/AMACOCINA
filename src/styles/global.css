@@ -1,0 +1,115 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f6efe6;
+  color: #2b2b2b;
+}
+
+h1, h2, h3 {
+  font-family: "Georgia", serif;
+  color: #5c3d2e;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background-color: #e36414;
+  color: white;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: #c7510f;
+  transform: translateY(-2px);
+}
+
+input, select, textarea {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  padding: 16px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.menu-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-link {
+  text-decoration: none;
+  font-weight: bold;
+  color: #e36414;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px;
+  margin: 20px 0;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.category-section {
+  margin-top: 40px;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  padding: 16px;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.description {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.qty-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qty-controls button {
+  width: 40px;
+  height: 36px;
+  border-radius: 8px;
+}
