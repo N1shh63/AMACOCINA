@@ -1,41 +1,46 @@
-import { Link } from "react-router-dom"
-import { useMemo, useState } from "react"
-import { useCart } from "../store/CartContext"
-import { createPreference } from "../services/payments"
+import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useCart } from "../store/CartContext";
+import { createPreference } from "../services/payments";
+
+function formatMoney(n) {
+  const v = Number(n || 0);
+  return v.toLocaleString("es-AR");
+}
 
 export default function Cart() {
-  const { items, setQty, removeItem, clear, totalPrice } = useCart()
-  const [name, setName] = useState("")
-  const [notes, setNotes] = useState("")
+  const { items, setQty, removeItem, clear, totalPrice } = useCart();
 
-  const [mpLoading, setMpLoading] = useState(false)
-  const [mpError, setMpError] = useState("")
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const hasItems = items.length > 0
+  const [mpLoading, setMpLoading] = useState(false);
+  const [mpError, setMpError] = useState("");
+
+  const hasItems = items.length > 0;
 
   const whatsappText = useMemo(() => {
-    if (!hasItems) return ""
+    if (!hasItems) return "";
 
-    let msg = `*Pedido AmaCocina*\n\n`
+    let msg = `*Pedido AmaCocina*\n\n`;
     for (const item of items) {
-      const lineTotal = item.price * item.qty
-      msg += `• ${item.qty}x ${item.name} — $${lineTotal}\n`
+      const lineTotal = item.price * item.qty;
+      msg += `• ${item.qty}x ${item.name} — $${formatMoney(lineTotal)}\n`;
     }
 
-    msg += `\n*Total:* $${totalPrice}\n`
-    if (name.trim()) msg += `\n*Nombre:* ${name.trim()}`
-    if (notes.trim()) msg += `\n*Notas:* ${notes.trim()}`
+    msg += `\n*Total:* $${formatMoney(totalPrice)}\n`;
+    if (name.trim()) msg += `\n*Nombre:* ${name.trim()}`;
+    if (notes.trim()) msg += `\n*Notas:* ${notes.trim()}`;
 
-    return msg
-  }, [items, totalPrice, name, notes, hasItems])
+    return msg;
+  }, [items, totalPrice, name, notes, hasItems]);
 
   const handleWhatsApp = () => {
-    if (!hasItems) return
-
-    const phone = "5491158182038"
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`
-    window.open(url, "_blank")
-  }
+    if (!hasItems) return;
+    const phone = "5491158182038";
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`;
+    window.open(url, "_blank");
+  };
 
   const mpItems = useMemo(() => {
     return items.map((it) => ({
@@ -43,151 +48,230 @@ export default function Cart() {
       title: String(it.name),
       quantity: Number(it.qty),
       unit_price: Number(it.price),
-    }))
-  }, [items])
+    }));
+  }, [items]);
 
   const handleMercadoPago = async () => {
-    if (!hasItems) return
-    setMpError("")
-    setMpLoading(true)
+    if (!hasItems || mpLoading) return;
+    setMpError("");
+    setMpLoading(true);
 
     try {
-      // (Opcional) Si querés exigir nombre antes de pagar:
+      // Si querés exigir nombre antes de pagar, descomentá:
       // if (!name.trim()) throw new Error("Ingresá tu nombre antes de pagar.");
 
-      const data = await createPreference(mpItems)
+      const data = await createPreference(mpItems);
 
-      const url = data?.init_point || data?.sandbox_init_point
-      if (!url) throw new Error("No se recibió init_point de Mercado Pago.")
+      const url = data?.init_point || data?.sandbox_init_point;
+      if (!url) throw new Error("No se recibió init_point de Mercado Pago.");
 
-      // Redirección al Checkout Pro
-      window.location.href = url
+      window.location.href = url;
     } catch (err) {
-      setMpError(err?.message || "No se pudo iniciar el pago con Mercado Pago.")
-      setMpLoading(false)
+      setMpError(err?.message || "No se pudo iniciar el pago con Mercado Pago.");
+      setMpLoading(false);
     }
-  }
+  };
+
+  const totalItems = useMemo(
+    () => items.reduce((acc, it) => acc + Number(it.qty || 0), 0),
+    [items]
+  );
 
   return (
-    <div className="cartWrap">
-      <div className="cartTop">
-        <h1 className="cartTitle">Carrito</h1>
-        <Link className="cartBack" to="/">
-          Seguir comprando
+    <div className="cartPage">
+      <div className="cartHeader">
+        <div className="cartHeaderLeft">
+          <h1 className="cartTitle">Carrito</h1>
+          <div className="cartSubtitle">
+            {hasItems ? `${totalItems} ítems` : "Sin productos"}
+          </div>
+        </div>
+
+        <Link className="cartLink" to="/">
+          ← Seguir comprando
         </Link>
       </div>
 
       {!hasItems ? (
-        <div className="cartEmpty">
-          Tu carrito está vacío.
-          <div style={{ marginTop: 10 }}>
-            <Link className="cartBackBtn" to="/">
-              Volver al menú
+        <div className="card cartEmpty">
+          <div className="cartEmptyTitle">Tu carrito está vacío</div>
+          <div className="cartEmptyText">
+            Volvé al menú y agregá productos para empezar.
+          </div>
+          <div className="cartEmptyActions">
+            <Link className="btn btnPrimary" to="/">
+              Ver menú
             </Link>
           </div>
         </div>
       ) : (
-        <>
-          <div className="cartList">
-            {items.map((item) => (
-              <div key={item.id} className="cartItem">
-                <div className="cartItemHead">
-                  <div className="cartItemName">{item.name}</div>
-                  <div className="cartItemTotal">${item.price * item.qty}</div>
-                </div>
-
-                <div className="cartItemBody">
-                  <div className="cartQty">
-                    <button
-                      className="cartQtyBtn"
-                      onClick={() => setQty(item.id, item.qty - 1)}
-                    >
-                      -
-                    </button>
-                    <span className="cartQtyVal">{item.qty}</span>
-                    <button
-                      className="cartQtyBtn"
-                      onClick={() => setQty(item.id, item.qty + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button className="cartRemove" onClick={() => removeItem(item.id)}>
-                    Eliminar
-                  </button>
-                </div>
-
-                <div className="cartUnit">Precio unitario: ${item.price}</div>
+        <div className="cartGrid">
+          {/* IZQUIERDA: items */}
+          <div className="cartCol">
+            <div className="card">
+              <div className="cardHeader">
+                <div className="cardTitle">Productos</div>
+                <button
+                  className="btn btnGhost"
+                  onClick={clear}
+                  disabled={mpLoading}
+                  title="Vaciar carrito"
+                >
+                  Vaciar
+                </button>
               </div>
-            ))}
-          </div>
 
-          <div className="cartForm">
-            <h3 className="cartFormTitle">Datos para confirmar</h3>
+              <div className="cartList">
+                {items.map((item) => {
+                  const lineTotal = item.price * item.qty;
 
-            <input
-              className="cartInput"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre y apellido"
-            />
+                  return (
+                    <div key={item.id} className="cartItem">
+                      <div className="cartItemMain">
+                        <div className="cartItemName">{item.name}</div>
+                        <div className="cartItemMeta">
+                          Unitario: ${formatMoney(item.price)}
+                        </div>
+                      </div>
 
-            <textarea
-              className="cartTextarea"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notas (sin cebolla, etc.)"
-              rows={4}
-            />
-          </div>
+                      <div className="cartItemRight">
+                        <div className="cartQty">
+                          <button
+                            className="qtyBtn"
+                            onClick={() => setQty(item.id, item.qty - 1)}
+                            disabled={mpLoading}
+                            aria-label="Restar"
+                          >
+                            −
+                          </button>
+                          <span className="qtyVal">{item.qty}</span>
+                          <button
+                            className="qtyBtn"
+                            onClick={() => setQty(item.id, item.qty + 1)}
+                            disabled={mpLoading}
+                            aria-label="Sumar"
+                          >
+                            +
+                          </button>
+                        </div>
 
-          <div className="cartBottom">
-            <div className="cartTotal">Total: ${totalPrice}</div>
+                        <div className="cartItemTotal">
+                          ${formatMoney(lineTotal)}
+                        </div>
 
-            {mpError ? (
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid rgba(255,80,80,.35)",
-                  background: "rgba(255,80,80,.08)",
-                  color: "#fff",
-                }}
-              >
-                {mpError} <br />
-                <span style={{ opacity: 0.9 }}>
-                  Podés continuar con WhatsApp como alternativa.
-                </span>
+                        <button
+                          className="btn btnDanger"
+                          onClick={() => removeItem(item.id)}
+                          disabled={mpLoading}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ) : null}
+            </div>
 
-            <div className="cartActions">
-              <button
-                className="cartPrimary"
-                onClick={handleMercadoPago}
-                disabled={mpLoading}
-                style={{
-                  background: "#E67E22",
-                  opacity: mpLoading ? 0.8 : 1,
-                  cursor: mpLoading ? "not-allowed" : "pointer",
-                }}
-              >
-                {mpLoading ? "Redirigiendo a Mercado Pago..." : "Pagar con Mercado Pago"}
-              </button>
+            <div className="card">
+              <div className="cardHeader">
+                <div className="cardTitle">Datos para confirmar</div>
+                <div className="cardHint">Opcional (recomendado)</div>
+              </div>
 
-              <button className="cartPrimary" onClick={handleWhatsApp} disabled={mpLoading}>
-                Enviar pedido por WhatsApp
-              </button>
+              <div className="formGrid">
+                <label className="field">
+                  <span className="label">Nombre y apellido</span>
+                  <input
+                    className="input"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    disabled={mpLoading}
+                  />
+                </label>
 
-              <button className="cartSecondary" onClick={clear} disabled={mpLoading}>
-                Vaciar carrito
-              </button>
+                <label className="field">
+                  <span className="label">Notas</span>
+                  <textarea
+                    className="textarea"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Ej: sin cebolla, extra salsa, etc."
+                    rows={4}
+                    disabled={mpLoading}
+                  />
+                </label>
+              </div>
             </div>
           </div>
-        </>
+
+          {/* DERECHA: resumen */}
+          <aside className="cartAside">
+            <div className="card">
+              <div className="cardHeader">
+                <div className="cardTitle">Resumen</div>
+              </div>
+
+              <div className="summary">
+                <div className="summaryRow">
+                  <span>Subtotal</span>
+                  <strong>${formatMoney(totalPrice)}</strong>
+                </div>
+                <div className="summaryRow">
+                  <span>Envío</span>
+                  <span className="muted">A coordinar</span>
+                </div>
+                <div className="summaryDivider" />
+                <div className="summaryRow summaryTotal">
+                  <span>Total</span>
+                  <strong>${formatMoney(totalPrice)}</strong>
+                </div>
+              </div>
+
+              {mpError ? (
+                <div className="alert alertError">
+                  <div className="alertTitle">No se pudo iniciar Mercado Pago</div>
+                  <div className="alertText">{mpError}</div>
+                  <div className="alertHint">
+                    Podés continuar con WhatsApp como alternativa.
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="actions">
+                <button
+                  className="btn btnPrimary btnBlock"
+                  onClick={handleMercadoPago}
+                  disabled={!hasItems || mpLoading}
+                >
+                  {mpLoading ? "Redirigiendo a Mercado Pago..." : "Pagar con Mercado Pago"}
+                </button>
+
+                <button
+                  className="btn btnSecondary btnBlock"
+                  onClick={handleWhatsApp}
+                  disabled={!hasItems || mpLoading}
+                >
+                  Enviar pedido por WhatsApp
+                </button>
+
+                <button
+                  className="btn btnGhost btnBlock"
+                  onClick={clear}
+                  disabled={!hasItems || mpLoading}
+                >
+                  Vaciar carrito
+                </button>
+              </div>
+
+              <div className="finePrint">
+                Al pagar, serás redirigido al checkout de Mercado Pago.
+              </div>
+            </div>
+          </aside>
+        </div>
       )}
     </div>
-  )
+  );
 }
