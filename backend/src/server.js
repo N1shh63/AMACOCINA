@@ -1,8 +1,10 @@
+const http = require("http");
 const app = require("./app");
 
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT || 4000);
 
-// Render detecta el puerto si NO forzás host
-app.listen(PORT, () => {
-  console.log(`[API] running on port ${PORT}`);
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
+  console.log(`[API] listening on ${PORT}`);
 });
