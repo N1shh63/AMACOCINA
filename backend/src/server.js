@@ -6,5 +6,5 @@ const PORT = Number(process.env.PORT || 4000);
 const server = http.createServer(app);
 
 server.listen(PORT, () => {
-  console.log(`[API] listening on ${PORT}`);
+  console.log(`[RENDER_MARKER_20260303] listening on port ${PORT}`);
 });
