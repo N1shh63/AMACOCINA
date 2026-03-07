@@ -84,13 +84,20 @@ async function createPreference(req, res) {
         request_id: requestId,
         source: "amacocina-web",
       },
+      payment_methods: {
+        installments: 1,
+        default_installments: 1,
+      },
     };
 
     if (BACK_URL) {
       body.notification_url = `${BACK_URL}/payments/webhook`;
     }
 
-    console.log(`[MP][${requestId}] items normalizados:`, JSON.stringify(normalizedItems, null, 2));
+    console.log(
+      `[MP][${requestId}] items normalizados:`,
+      JSON.stringify(normalizedItems, null, 2)
+    );
     console.log(`[MP][${requestId}] body enviado a preferencia:`);
     console.log(JSON.stringify(body, null, 2));
 
@@ -99,6 +106,8 @@ async function createPreference(req, res) {
     const result = await preference.create({ body });
 
     console.log(`[MP][${requestId}] preference creada OK`);
+    console.log(`[MP][${requestId}] collector_id:`, result?.collector_id);
+    console.log(`[MP][${requestId}] client_id:`, result?.client_id);
     console.log(`[MP][${requestId}] preference_id:`, result?.id);
     console.log(`[MP][${requestId}] init_point:`, result?.init_point);
     console.log(`[MP][${requestId}] sandbox_init_point:`, result?.sandbox_init_point);
