@@ -1,4 +1,4 @@
-const { Preference } = require("mercadopago");
+const { Preference, MerchantOrder } = require("mercadopago");
 const { getMpClient } = require("../config/mercadopago");
 
 function buildRequestId() {
@@ -79,6 +79,7 @@ async function createPreference(req, res) {
       },
       auto_return: "approved",
       external_reference: `amacocina_${requestId}`,
+      statement_descriptor: "AMACOCINA",
       metadata: {
         request_id: requestId,
         source: "amacocina-web",
@@ -89,6 +90,7 @@ async function createPreference(req, res) {
       body.notification_url = `${BACK_URL}/payments/webhook`;
     }
 
+    console.log(`[MP][${requestId}] items normalizados:`, JSON.stringify(normalizedItems, null, 2));
     console.log(`[MP][${requestId}] body enviado a preferencia:`);
     console.log(JSON.stringify(body, null, 2));
 
@@ -171,4 +173,29 @@ async function createPreference(req, res) {
   }
 }
 
-module.exports = { createPreference };
+async function getMerchantOrder(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "merchant_order id requerido" });
+    }
+
+    const mp = getMpClient();
+    const merchantOrder = new MerchantOrder(mp);
+    const result = await merchantOrder.get({ merchantOrderId: id });
+
+    console.log("[MP ORDER] merchant_order consultada:", id);
+    console.log("[MP ORDER] respuesta:", JSON.stringify(result, null, 2));
+
+    return res.json(result);
+  } catch (err) {
+    console.error("[MP ORDER] error:", err?.message);
+    return res.status(500).json({
+      error: "No se pudo consultar merchant_order",
+      detail: err?.message || "Error desconocido",
+    });
+  }
+}
+
+module.exports = { createPreference, getMerchantOrder };
