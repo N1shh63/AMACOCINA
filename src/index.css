@@ -686,3 +686,134 @@ input, textarea, select, button { font: inherit; }
   display: grid;
   place-items: center;
 }
+
+/* =========================
+   CART PRO + MOBILE PAY BAR
+========================= */
+
+.cartPro .cartSub{
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+}
+
+.cartGridPro{
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 980px){
+  .cartGridPro{ grid-template-columns: 1fr; }
+}
+
+.cardPro{
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.cardProHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 12px;
+}
+
+.cardProTitle{
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+}
+
+.cardProHint{
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}
+
+.cartItemMeta{
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+
+.cartItemRight{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Desktop only / Mobile only */
+.desktopOnly{ display: block; }
+@media (max-width: 520px){
+  .desktopOnly{ display: none; }
+}
+
+/* Mobile sticky pay bar */
+.mobilePayBar{
+  display: none;
+}
+
+.mobilePaySpacer{
+  display: none;
+}
+
+@media (max-width: 520px){
+  .mobilePayBar{
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      rgba(18,18,18,0.92),
+      rgba(18,18,18,0.70),
+      rgba(18,18,18,0)
+    );
+  }
+
+  .mobilePayInner{
+    max-width: 520px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .mobilePayTotal{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.25);
+    min-height: 46px;
+    justify-content: center;
+  }
+
+  .mobilePayBtn{
+    min-height: 46px;
+    border-radius: 16px;
+    font-weight: 1000;
+  }
+
+  .mobilePaySpacer{
+    display: block;
+    height: 96px; /* para que el contenido no quede tapado */
+  }
+}

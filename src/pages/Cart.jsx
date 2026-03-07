@@ -1,39 +1,43 @@
-import { Link } from "react-router-dom"
-import { useMemo, useState } from "react"
-import { useCart } from "../store/CartContext"
-import { createPreference } from "../services/payments"
+import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useCart } from "../store/CartContext";
+import { createPreference } from "../services/payments";
 
 export default function Cart() {
-  const { items, setQty, removeItem, clear, totalPrice } = useCart()
-  const [name, setName] = useState("")
-  const [notes, setNotes] = useState("")
-  const [mpLoading, setMpLoading] = useState(false)
-  const [mpError, setMpError] = useState("")
+  const { items, setQty, removeItem, clear, totalPrice } = useCart();
+  const [name, setName] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const hasItems = items.length > 0
+  const [mpLoading, setMpLoading] = useState(false);
+  const [mpError, setMpError] = useState("");
+
+  const hasItems = items.length > 0;
 
   const whatsappText = useMemo(() => {
-    if (!hasItems) return ""
+    if (!hasItems) return "";
 
-    let msg = `*Pedido AmaCocina*\n\n`
+    let msg = `*Pedido AmaCocina*\n\n`;
+
     for (const item of items) {
-      const lineTotal = item.price * item.qty
-      msg += `• ${item.qty}x ${item.name} — $${lineTotal}\n`
+      const lineTotal = item.price * item.qty;
+      msg += `• ${item.qty}x ${item.name} — $${lineTotal}\n`;
     }
 
-    msg += `\n*Total:* $${totalPrice}\n`
-    if (name.trim()) msg += `\n*Nombre:* ${name.trim()}`
-    if (notes.trim()) msg += `\n*Notas:* ${notes.trim()}`
+    msg += `\n*Total:* $${totalPrice}\n`;
 
-    return msg
-  }, [items, totalPrice, name, notes, hasItems])
+    if (name.trim()) msg += `\n*Nombre:* ${name.trim()}`;
+    if (notes.trim()) msg += `\n*Notas:* ${notes.trim()}`;
+
+    return msg;
+  }, [items, totalPrice, name, notes, hasItems]);
 
   const handleWhatsApp = () => {
-    if (!hasItems) return
-    const phone = "5491158182038"
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`
-    window.open(url, "_blank")
-  }
+    if (!hasItems) return;
+
+    const phone = "5491158182038";
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`;
+    window.open(url, "_blank");
+  };
 
   const mpItems = useMemo(() => {
     return items.map((it) => ({
@@ -41,130 +45,110 @@ export default function Cart() {
       title: String(it.name),
       quantity: Number(it.qty),
       unit_price: Number(it.price),
-    }))
-  }, [items])
+    }));
+  }, [items]);
 
   const handleMercadoPago = async () => {
-    if (!hasItems) return
-    setMpError("")
-    setMpLoading(true)
+    if (!hasItems || mpLoading) return;
+
+    setMpError("");
+    setMpLoading(true);
 
     try {
-      const data = await createPreference(mpItems)
+      const data = await createPreference(mpItems);
+      const url = data?.init_point;
 
-      const url = data?.init_point || data?.sandbox_init_point
-      if (!url) throw new Error("No se recibió init_point de Mercado Pago.")
+      if (!url) {
+        throw new Error("No se recibió init_point de producción.");
+      }
 
-      window.location.href = url
+      window.location.href = url;
     } catch (err) {
-      setMpError(err?.message || "No se pudo iniciar el pago con Mercado Pago.")
-      setMpLoading(false)
+      setMpError(err?.message || "No se pudo iniciar el pago con Mercado Pago.");
+      setMpLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="container cartPage">
-      {/* HEADER */}
-      <div className="cartHeader">
+    <div className="cartWrap cartPro">
+      <div className="cartTop">
         <div>
           <h1 className="cartTitle">Carrito</h1>
-          <div className="cartSubtitle">
+          <div className="cartSub">
             Revisá tu pedido y confirmá por Mercado Pago o WhatsApp.
           </div>
         </div>
 
-        <Link className="cartLink" to="/">
+        <Link className="cartBackBtn" to="/">
           ← Seguir comprando
         </Link>
       </div>
 
-      {/* EMPTY */}
       {!hasItems ? (
-        <div className="card cartEmpty">
+        <div className="cartEmpty">
           <div className="cartEmptyTitle">Tu carrito está vacío</div>
-          <div className="cartEmptyText">
-            Volvé al menú y agregá productos para continuar.
-          </div>
-
+          <div className="cartEmptyText">Volvé al menú y agregá algo rico.</div>
           <div className="cartEmptyActions">
-            <Link className="btn btnPrimary" to="/">
+            <Link className="cartBackBtn" to="/">
               Volver al menú
             </Link>
           </div>
         </div>
       ) : (
-        <div className="cartGrid">
-          {/* LEFT: ITEMS */}
-          <div className="card">
-            <div className="cardHeader">
-              <div className="cardTitle">Tu pedido</div>
-              <div className="cardHint">{items.length} item(s)</div>
-            </div>
-
-            <div className="cartList">
-              {items.map((item) => (
-                <div key={item.id} className="cartItem">
-                  <div>
-                    <div className="cartItemName">{item.name}</div>
-                    <div className="cartItemMeta">
-                      Unitario: ${item.price} · Subtotal: ${item.price * item.qty}
-                    </div>
-                  </div>
-
-                  <div className="cartItemRight">
-                    <div className="cartQty">
-                      <button
-                        className="qtyBtn"
-                        onClick={() => setQty(item.id, item.qty - 1)}
-                        disabled={mpLoading}
-                        aria-label="Restar"
-                      >
-                        –
-                      </button>
-                      <div className="qtyVal">{item.qty}</div>
-                      <button
-                        className="qtyBtn"
-                        onClick={() => setQty(item.id, item.qty + 1)}
-                        disabled={mpLoading}
-                        aria-label="Sumar"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <div className="cartItemTotal">${item.price * item.qty}</div>
-
-                    <button
-                      className="btn btnDanger"
-                      onClick={() => removeItem(item.id)}
-                      disabled={mpLoading}
-                      aria-label="Eliminar"
-                    >
-                      Eliminar
-                    </button>
+        <>
+          <div className="cartList">
+            {items.map((item) => (
+              <div key={item.id} className="cartItem">
+                <div>
+                  <div className="cartItemName">{item.name}</div>
+                  <div className="cartItemMeta">
+                    Unitario: ${item.price} • Subtotal: ${item.price * item.qty}
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="actions">
-              <button className="btn btnGhost" onClick={clear} disabled={mpLoading}>
-                Vaciar carrito
-              </button>
-            </div>
+                <div className="cartItemRight">
+                  <div className="cartQty">
+                    <button
+                      className="qtyBtn"
+                      onClick={() => setQty(item.id, item.qty - 1)}
+                      disabled={mpLoading}
+                    >
+                      –
+                    </button>
+
+                    <span className="qtyVal">{item.qty}</span>
+
+                    <button
+                      className="qtyBtn"
+                      onClick={() => setQty(item.id, item.qty + 1)}
+                      disabled={mpLoading}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    className="btn btnDanger"
+                    onClick={() => removeItem(item.id)}
+                    disabled={mpLoading}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* RIGHT: FORM + SUMMARY */}
-          <div>
-            <div className="card">
-              <div className="cardHeader">
-                <div className="cardTitle">Datos para confirmar</div>
-                <div className="cardHint">Opcional</div>
+          <div className="cartGridPro">
+            <div className="cardPro">
+              <div className="cardProHead">
+                <div className="cardProTitle">Datos para confirmar</div>
+                <div className="cardProHint">Opcional</div>
               </div>
 
               <div className="formGrid">
                 <div className="field">
-                  <label className="label">Nombre y apellido</label>
+                  <span className="label">Nombre y apellido</span>
                   <input
                     className="input"
                     value={name}
@@ -175,7 +159,7 @@ export default function Cart() {
                 </div>
 
                 <div className="field">
-                  <label className="label">Notas</label>
+                  <span className="label">Notas</span>
                   <textarea
                     className="textarea"
                     value={notes}
@@ -184,6 +168,27 @@ export default function Cart() {
                     rows={4}
                     disabled={mpLoading}
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="cardPro">
+              <div className="cardProHead">
+                <div className="cardProTitle">Resumen</div>
+                <div className="cardProHint">{items.length} item(s)</div>
+              </div>
+
+              <div className="summary">
+                <div className="summaryRow">
+                  <span className="muted">Total</span>
+                  <span className="muted">${totalPrice}</span>
+                </div>
+
+                <div className="summaryDivider" />
+
+                <div className="summaryRow summaryTotal">
+                  <span>Total a pagar</span>
+                  <strong>${totalPrice}</strong>
                 </div>
               </div>
 
@@ -196,33 +201,14 @@ export default function Cart() {
                   </div>
                 </div>
               ) : null}
-            </div>
 
-            <div className="card" style={{ marginTop: 14 }}>
-              <div className="cardHeader">
-                <div className="cardTitle">Resumen</div>
-                <div className="cardHint">Total final</div>
-              </div>
-
-              <div className="summary">
-                <div className="summaryRow">
-                  <span className="muted">Total</span>
-                  <strong>${totalPrice}</strong>
-                </div>
-                <div className="summaryDivider" />
-                <div className="summaryRow summaryTotal">
-                  <span>Total a pagar</span>
-                  <strong>${totalPrice}</strong>
-                </div>
-              </div>
-
-              <div className="actions">
+              <div className="actions desktopOnly">
                 <button
                   className="btn btnPrimary btnBlock"
                   onClick={handleMercadoPago}
                   disabled={mpLoading}
                 >
-                  {mpLoading ? "Redirigiendo a Mercado Pago..." : "Pagar con Mercado Pago"}
+                  {mpLoading ? "Redirigiendo..." : "Pagar con Mercado Pago"}
                 </button>
 
                 <button
@@ -233,14 +219,49 @@ export default function Cart() {
                   Enviar pedido por WhatsApp
                 </button>
 
+                <button
+                  className="btn btnGhost btnBlock"
+                  onClick={clear}
+                  disabled={mpLoading}
+                >
+                  Vaciar carrito
+                </button>
+
                 <div className="finePrint">
                   * En Render free puede haber demora al “despertar” el servidor.
                 </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <div className="mobilePayBar">
+            <div className="mobilePayInner">
+              <div className="mobilePayTotal">
+                <span className="muted">Total</span>
+                <strong>${totalPrice}</strong>
+              </div>
+
+              <button
+                className="btn btnPrimary mobilePayBtn"
+                onClick={handleMercadoPago}
+                disabled={mpLoading}
+              >
+                {mpLoading ? "Redirigiendo..." : "Mercado Pago"}
+              </button>
+
+              <button
+                className="btn btnSecondary mobilePayBtn"
+                onClick={handleWhatsApp}
+                disabled={mpLoading}
+              >
+                WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <div className="mobilePaySpacer" />
+        </>
       )}
     </div>
-  )
+  );
 }
