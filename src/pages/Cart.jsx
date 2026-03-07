@@ -1,17 +1,25 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../store/CartContext";
 import { createPreference } from "../services/payments";
 
 export default function Cart() {
   const { items, setQty, removeItem, clear, totalPrice } = useCart();
-  const [name, setName] = useState("");
+
+  const [name, setName] = useState(() => {
+    return localStorage.getItem("amacocina_name") || "";
+  });
   const [notes, setNotes] = useState("");
 
   const [mpLoading, setMpLoading] = useState(false);
   const [mpError, setMpError] = useState("");
 
   const hasItems = items.length > 0;
+  const nameIsValid = name.trim().length >= 3;
+
+  useEffect(() => {
+    localStorage.setItem("amacocina_name", name);
+  }, [name]);
 
   const whatsappText = useMemo(() => {
     if (!hasItems) return "";
@@ -24,15 +32,22 @@ export default function Cart() {
     }
 
     msg += `\n*Total:* $${totalPrice}\n`;
+    msg += `\n*Nombre:* ${name.trim()}`;
 
-    if (name.trim()) msg += `\n*Nombre:* ${name.trim()}`;
-    if (notes.trim()) msg += `\n*Notas:* ${notes.trim()}`;
+    if (notes.trim()) {
+      msg += `\n*Notas:* ${notes.trim()}`;
+    }
 
     return msg;
   }, [items, totalPrice, name, notes, hasItems]);
 
   const handleWhatsApp = () => {
     if (!hasItems) return;
+
+    if (!nameIsValid) {
+      setMpError("Por favor ingresá tu nombre para continuar.");
+      return;
+    }
 
     const phone = "5491158182038";
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`;
@@ -50,6 +65,11 @@ export default function Cart() {
 
   const handleMercadoPago = async () => {
     if (!hasItems || mpLoading) return;
+
+    if (!nameIsValid) {
+      setMpError("Por favor ingresá tu nombre para continuar.");
+      return;
+    }
 
     setMpError("");
     setMpLoading(true);
@@ -142,13 +162,13 @@ export default function Cart() {
           <div className="cartGridPro">
             <div className="cardPro">
               <div className="cardProHead">
-                <div className="cardProTitle">Datos para confirmar</div>
-                <div className="cardProHint">Opcional</div>
+                <div className="cardProTitle">Datos para confirmar *</div>
+                <div className="cardProHint">Obligatorio</div>
               </div>
 
               <div className="formGrid">
                 <div className="field">
-                  <span className="label">Nombre y apellido</span>
+                  <span className="label">Nombre y apellido *</span>
                   <input
                     className="input"
                     value={name}
@@ -194,11 +214,8 @@ export default function Cart() {
 
               {mpError ? (
                 <div className="alert alertError">
-                  <div className="alertTitle">No se pudo iniciar el pago</div>
+                  <div className="alertTitle">Atención</div>
                   <div className="alertText">{mpError}</div>
-                  <div className="alertHint">
-                    Podés confirmar por WhatsApp como alternativa.
-                  </div>
                 </div>
               ) : null}
 
