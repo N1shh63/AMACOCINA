@@ -15,6 +15,42 @@ function formatDate(iso) {
   }
 }
 
+function formatDateOnly(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatTime(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function getDateKey(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+}
+
 function paymentMethodLabel(method) {
   if (!method) return "—";
   const map = { mercadopago: "Mercado Pago", efectivo: "Efectivo", whatsapp: "WhatsApp" };
@@ -127,38 +163,61 @@ function AdminOrdersContent() {
           <p className="muted">No hay pedidos todavía.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="card"
-              style={{
-                padding: "1rem 1.25rem",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                background: "rgba(255,255,255,0.03)",
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gap: "0.5rem 1rem",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                  alignItems: "start",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Cliente
+        (() => {
+          const byDate = {};
+          (orders || []).forEach((o) => {
+            const k = getDateKey(o.createdAt) || "sin-fecha";
+            if (!byDate[k]) byDate[k] = [];
+            byDate[k].push(o);
+          });
+          const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {dateKeys.map((dateKey) => (
+                <div key={dateKey}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "rgba(255,255,255,0.6)",
+                      marginBottom: "0.75rem",
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {dateKey === "sin-fecha" ? "Sin fecha" : formatDateOnly(byDate[dateKey][0]?.createdAt)}
                   </div>
-                  <div style={{ fontWeight: 600 }}>{order.customer?.name || "—"}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Fecha y hora
-                  </div>
-                  <div style={{ fontSize: "0.9rem" }}>{formatDate(order.createdAt)}</div>
-                </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    {byDate[dateKey].map((order) => (
+                      <div
+                        key={order.id}
+                        className="card"
+                        style={{
+                          padding: "1rem 1.25rem",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: "12px",
+                          background: "rgba(255,255,255,0.03)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: "0.5rem 1rem",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                            alignItems: "start",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
+                              Hora
+                            </div>
+                            <div style={{ fontSize: "1rem", fontWeight: 700 }}>{formatTime(order.createdAt)}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
+                              Cliente
+                            </div>
+                            <div style={{ fontWeight: 600 }}>{order.customer?.name || "—"}</div>
+                          </div>
                 <div>
                   <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
                     Total
@@ -210,7 +269,12 @@ function AdminOrdersContent() {
               </div>
             </div>
           ))}
-        </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()
       )}
     </section>
   );
