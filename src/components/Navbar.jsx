@@ -33,6 +33,15 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+
+            <Link
+              to="/admin/login"
+              className="navLink"
+              style={{ fontSize: "12px", opacity: 0.82 }}
+              aria-label="Panel admin"
+            >
+              Admin
+            </Link>
           </nav>
         </div>
       </header>
