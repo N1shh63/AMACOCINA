@@ -5,6 +5,7 @@ const cors = require("cors");
 
 const paymentsRoutes = require("./routes/payments.routes");
 const ordersRoutes = require("./routes/orders.routes");
+const adminRoutes = require("./routes/admin.routes");
 const { migrate } = require("./db/migrate");
 
 // Initialize DB schema on startup (safe: idempotent migrations).
@@ -55,6 +56,7 @@ app.get("/health", (req, res) => {
 
 app.use("/orders", ordersRoutes);
 app.use("/payments", paymentsRoutes);
+app.use("/admin", adminRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

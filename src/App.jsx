@@ -6,6 +6,8 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
 import CheckoutPending from "./pages/CheckoutPending";
 import CheckoutCashConfirmation from "./pages/CheckoutCashConfirmation";
+import AdminOrders from "./pages/AdminOrders";
+import AdminLogin from "./pages/AdminLogin";
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Menu />} />
             <Route path="/cart" element={<Cart />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
 
             <Route path="/checkout/success" element={<CheckoutSuccess />} />
             <Route path="/checkout/failure" element={<CheckoutFailure />} />

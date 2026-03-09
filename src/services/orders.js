@@ -29,3 +29,17 @@ export async function getOrderById(id) {
   return data;
 }
 
+export async function getOrders({ limit = 100, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (limit != null) params.set("limit", String(limit));
+  if (offset != null) params.set("offset", String(offset));
+  const res = await fetch(`${API_BASE}/orders?${params.toString()}`);
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const msg = data?.detail || data?.error || "Error listando pedidos";
+    throw new Error(msg);
+  }
+
+  return data;
+}
