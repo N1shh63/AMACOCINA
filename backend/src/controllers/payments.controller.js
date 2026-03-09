@@ -1,5 +1,9 @@
 const { Preference, MerchantOrder } = require("mercadopago");
 const { getMpClient } = require("../config/mercadopago");
+const {
+  getOrderById,
+  setMercadoPagoPreference,
+} = require("../repositories/orders.repo");
 
 function buildRequestId() {
   return `mp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -44,9 +48,26 @@ async function createPreference(req, res) {
     console.log(`\n[MP][${requestId}] ===== INICIO createPreference =====`);
     console.log(`[MP][${requestId}] body recibido:`, JSON.stringify(req.body, null, 2));
 
-    const { items } = req.body || {};
+    const { items, orderId } = req.body || {};
 
-    const error = validateItems(items);
+    let resolvedItems = items;
+    let resolvedOrder = null;
+
+    if (orderId) {
+      resolvedOrder = getOrderById(String(orderId));
+      if (!resolvedOrder) {
+        console.error(`[MP][${requestId}] orderId no encontrado:`, orderId);
+        return res.status(400).json({ error: "orderId inválido", requestId });
+      }
+
+      resolvedItems = (resolvedOrder.items || []).map((it) => ({
+        title: String(it.name),
+        quantity: Number(it.qty),
+        unit_price: Number(it.unitPrice),
+      }));
+    }
+
+    const error = validateItems(resolvedItems);
     if (error) {
       console.error(`[MP][${requestId}] validación fallida:`, error);
       return res.status(400).json({ error, requestId });
@@ -68,21 +89,24 @@ async function createPreference(req, res) {
       });
     }
 
-    const normalizedItems = items.map(normalizeItem);
+    const normalizedItems = resolvedItems.map(normalizeItem);
+
+    const orderIdQuery = resolvedOrder?.id ? `?order_id=${encodeURIComponent(resolvedOrder.id)}` : "";
 
     const body = {
       items: normalizedItems,
       back_urls: {
-        success: `${FRONT_URL}/checkout/success`,
-        failure: `${FRONT_URL}/checkout/failure`,
-        pending: `${FRONT_URL}/checkout/pending`,
+        success: `${FRONT_URL}/checkout/success${orderIdQuery}`,
+        failure: `${FRONT_URL}/checkout/failure${orderIdQuery}`,
+        pending: `${FRONT_URL}/checkout/pending${orderIdQuery}`,
       },
       auto_return: "approved",
-      external_reference: `amacocina_${requestId}`,
+      external_reference: resolvedOrder?.id ? String(resolvedOrder.id) : `amacocina_${requestId}`,
       statement_descriptor: "AMACOCINA",
       metadata: {
         request_id: requestId,
         source: "amacocina-web",
+        ...(resolvedOrder?.id ? { order_id: String(resolvedOrder.id) } : {}),
       },
       payment_methods: {
         installments: 1,
@@ -123,11 +147,37 @@ async function createPreference(req, res) {
 
     console.log(`[MP][${requestId}] ===== FIN createPreference OK =====\n`);
 
+    if (resolvedOrder?.id && result?.id) {
+      try {
+        const ok = setMercadoPagoPreference({
+          orderId: resolvedOrder.id,
+          preferenceId: result.id,
+          externalReference: resolvedOrder.id,
+        });
+        console.log(
+          `[MP][${requestId}] persist mp_preference_id:`,
+          ok ? "OK" : "NO_CHANGES"
+        );
+      } catch (e) {
+        console.error(
+          `[MP][${requestId}] no se pudo persistir mp_preference_id:`,
+          e?.message
+        );
+      }
+    }
+
+    const responseMode =
+      process.env.NODE_ENV === "production"
+        ? "production"
+        : result?.sandbox_init_point
+          ? "sandbox"
+          : "production";
+
     return res.json({
       preference_id: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point || null,
-      mode: "production",
+      mode: responseMode,
       requestId,
     });
   } catch (err) {

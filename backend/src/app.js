@@ -4,6 +4,16 @@ const express = require("express");
 const cors = require("cors");
 
 const paymentsRoutes = require("./routes/payments.routes");
+const ordersRoutes = require("./routes/orders.routes");
+const { migrate } = require("./db/migrate");
+
+// Initialize DB schema on startup (safe: idempotent migrations).
+try {
+  migrate();
+} catch (err) {
+  console.error("[DB] migration failed:", err);
+  throw err;
+}
 
 const app = express();
 
@@ -43,6 +53,7 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
+app.use("/orders", ordersRoutes);
 app.use("/payments", paymentsRoutes);
 
 // Error handler

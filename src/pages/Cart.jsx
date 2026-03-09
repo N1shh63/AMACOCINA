@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../store/CartContext";
-import { createPreference } from "../services/payments";
+import { createOrder } from "../services/orders";
+import { createPreferenceForOrder } from "../services/payments";
 
 export default function Cart() {
   const { items, setQty, removeItem, clear, totalPrice } = useCart();
@@ -54,15 +55,6 @@ export default function Cart() {
     window.open(url, "_blank");
   };
 
-  const mpItems = useMemo(() => {
-    return items.map((it) => ({
-      id: String(it.id),
-      title: String(it.name),
-      quantity: Number(it.qty),
-      unit_price: Number(it.price),
-    }));
-  }, [items]);
-
   const handleMercadoPago = async () => {
     if (!hasItems || mpLoading) return;
 
@@ -75,16 +67,74 @@ export default function Cart() {
     setMpLoading(true);
 
     try {
-      const data = await createPreference(mpItems);
-      const url = data?.init_point;
+      const order = await createOrder({
+        customer: { name: name.trim(), notes: notes.trim() || undefined },
+        items: items.map((it) => ({
+          id: String(it.id),
+          name: String(it.name),
+          qty: Number(it.qty),
+          unitPrice: Number(it.price),
+        })),
+        currency: "ARS",
+      });
 
+      const orderId = order?.id;
+      if (!orderId) {
+        throw new Error("No se pudo crear la orden (sin id).");
+      }
+
+      const data = await createPreferenceForOrder(orderId);
+
+      const url = data?.init_point || data?.sandbox_init_point;
       if (!url) {
-        throw new Error("No se recibió init_point de producción.");
+        throw new Error("No se recibió init_point / sandbox_init_point.");
       }
 
       window.location.href = url;
     } catch (err) {
-      setMpError(err?.message || "No se pudo iniciar el pago con Mercado Pago.");
+      setMpError(
+        err?.message ||
+          "No se pudo iniciar el pago. Intentá nuevamente en unos segundos."
+      );
+      setMpLoading(false);
+    }
+  };
+
+  const handleEfectivo = async () => {
+    if (!hasItems || mpLoading) return;
+
+    if (!nameIsValid) {
+      setMpError("Por favor ingresá tu nombre para continuar.");
+      return;
+    }
+
+    setMpError("");
+    setMpLoading(true);
+
+    try {
+      const order = await createOrder({
+        customer: { name: name.trim(), notes: notes.trim() || undefined },
+        items: items.map((it) => ({
+          id: String(it.id),
+          name: String(it.name),
+          qty: Number(it.qty),
+          unitPrice: Number(it.price),
+        })),
+        currency: "ARS",
+        payment_method: "efectivo",
+      });
+
+      const orderId = order?.id;
+      if (!orderId) {
+        throw new Error("No se pudo crear la orden (sin id).");
+      }
+
+      window.location.href = `/checkout/cash-confirmation?order_id=${encodeURIComponent(orderId)}`;
+    } catch (err) {
+      setMpError(
+        err?.message ||
+          "No se pudo registrar el pedido. Intentá nuevamente en unos segundos."
+      );
       setMpLoading(false);
     }
   };
@@ -230,6 +280,14 @@ export default function Cart() {
 
                 <button
                   className="btn btnSecondary btnBlock"
+                  onClick={handleEfectivo}
+                  disabled={mpLoading}
+                >
+                  {mpLoading ? "Registrando..." : "Pagar en efectivo"}
+                </button>
+
+                <button
+                  className="btn btnSecondary btnBlock"
                   onClick={handleWhatsApp}
                   disabled={mpLoading}
                 >
@@ -264,6 +322,14 @@ export default function Cart() {
                 disabled={mpLoading}
               >
                 {mpLoading ? "Redirigiendo..." : "Mercado Pago"}
+              </button>
+
+              <button
+                className="btn btnSecondary mobilePayBtn"
+                onClick={handleEfectivo}
+                disabled={mpLoading}
+              >
+                {mpLoading ? "..." : "Efectivo"}
               </button>
 
               <button

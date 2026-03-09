@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutFailure from "./pages/CheckoutFailure";
 import CheckoutPending from "./pages/CheckoutPending";
+import CheckoutCashConfirmation from "./pages/CheckoutCashConfirmation";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/checkout/success" element={<CheckoutSuccess />} />
             <Route path="/checkout/failure" element={<CheckoutFailure />} />
             <Route path="/checkout/pending" element={<CheckoutPending />} />
+            <Route path="/checkout/cash-confirmation" element={<CheckoutCashConfirmation />} />
           </Routes>
         </main>
       </div>
