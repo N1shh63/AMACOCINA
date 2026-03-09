@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { products } from "../data/products";
 import ProductCard from "../components/ProductCard";
 
@@ -150,9 +149,6 @@ export default function Menu() {
           <div className="footerRight">
             <div>Horarios: (editar)</div>
             <div className="footerText">Zona de envío: (editar)</div>
-            <Link to="/admin/login" className="footerText" style={{ marginTop: "6px", opacity: 0.7, fontSize: "0.85rem" }}>
-              Admin
-            </Link>
           </div>
         </footer>
       </section>
