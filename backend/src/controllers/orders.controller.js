@@ -49,7 +49,7 @@ function validateCreateOrderPayload(body) {
   return details.length ? details : null;
 }
 
-const ALLOWED_PAYMENT_METHODS = ["mercadopago", "efectivo", "whatsapp"];
+const ALLOWED_PAYMENT_METHODS = ["mercadopago", "efectivo", "whatsapp", "alias"];
 
 function validatePaymentMethod(value) {
   if (value === undefined || value === null || value === "") return null;

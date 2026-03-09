@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "../store/CartContext";
 import { createOrder } from "../services/orders";
-import { createPreferenceForOrder } from "../services/payments";
+
+const PAYMENT_ALIAS = "amacocina";
 
 export default function Cart() {
   const { items, setQty, removeItem, clear, totalPrice } = useCart();
@@ -12,8 +13,9 @@ export default function Cart() {
   });
   const [notes, setNotes] = useState("");
 
-  const [mpLoading, setMpLoading] = useState(false);
-  const [mpError, setMpError] = useState("");
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState("");
+  const [showAliasStep, setShowAliasStep] = useState(false);
 
   const hasItems = items.length > 0;
   const nameIsValid = name.trim().length >= 3;
@@ -22,94 +24,16 @@ export default function Cart() {
     localStorage.setItem("amacocina_name", name);
   }, [name]);
 
-  const whatsappText = useMemo(() => {
-    if (!hasItems) return "";
-
-    let msg = `*Pedido AmaCocina*\n\n`;
-
-    for (const item of items) {
-      const lineTotal = item.price * item.qty;
-      msg += `• ${item.qty}x ${item.name} — $${lineTotal}\n`;
-    }
-
-    msg += `\n*Total:* $${totalPrice}\n`;
-    msg += `\n*Nombre:* ${name.trim()}`;
-
-    if (notes.trim()) {
-      msg += `\n*Notas:* ${notes.trim()}`;
-    }
-
-    return msg;
-  }, [items, totalPrice, name, notes, hasItems]);
-
-  const handleWhatsApp = () => {
-    if (!hasItems) return;
-
-    if (!nameIsValid) {
-      setMpError("Por favor ingresá tu nombre para continuar.");
-      return;
-    }
-
-    const phone = "5491158182038";
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`;
-    window.open(url, "_blank");
-  };
-
-  const handleMercadoPago = async () => {
-    if (!hasItems || mpLoading) return;
-
-    if (!nameIsValid) {
-      setMpError("Por favor ingresá tu nombre para continuar.");
-      return;
-    }
-
-    setMpError("");
-    setMpLoading(true);
-
-    try {
-      const order = await createOrder({
-        customer: { name: name.trim(), notes: notes.trim() || undefined },
-        items: items.map((it) => ({
-          id: String(it.id),
-          name: String(it.name),
-          qty: Number(it.qty),
-          unitPrice: Number(it.price),
-        })),
-        currency: "ARS",
-      });
-
-      const orderId = order?.id;
-      if (!orderId) {
-        throw new Error("No se pudo crear la orden (sin id).");
-      }
-
-      const data = await createPreferenceForOrder(orderId);
-
-      const url = data?.init_point || data?.sandbox_init_point;
-      if (!url) {
-        throw new Error("No se recibió init_point / sandbox_init_point.");
-      }
-
-      window.location.href = url;
-    } catch (err) {
-      setMpError(
-        err?.message ||
-          "No se pudo iniciar el pago. Intentá nuevamente en unos segundos."
-      );
-      setMpLoading(false);
-    }
-  };
-
   const handleEfectivo = async () => {
-    if (!hasItems || mpLoading) return;
+    if (!hasItems || payLoading) return;
 
     if (!nameIsValid) {
-      setMpError("Por favor ingresá tu nombre para continuar.");
+      setPayError("Por favor ingresá tu nombre para continuar.");
       return;
     }
 
-    setMpError("");
-    setMpLoading(true);
+    setPayError("");
+    setPayLoading(true);
 
     try {
       const order = await createOrder({
@@ -131,11 +55,55 @@ export default function Cart() {
 
       window.location.href = `/checkout/cash-confirmation?order_id=${encodeURIComponent(orderId)}`;
     } catch (err) {
-      setMpError(
+      setPayError(
         err?.message ||
           "No se pudo registrar el pedido. Intentá nuevamente en unos segundos."
       );
-      setMpLoading(false);
+      setPayLoading(false);
+    }
+  };
+
+  const handlePagarPorAlias = () => {
+    if (!hasItems) return;
+    if (!nameIsValid) {
+      setPayError("Por favor ingresá tu nombre para continuar.");
+      return;
+    }
+    setPayError("");
+    setShowAliasStep(true);
+  };
+
+  const handleYaTransferi = async () => {
+    if (!hasItems || payLoading) return;
+
+    setPayError("");
+    setPayLoading(true);
+
+    try {
+      const order = await createOrder({
+        customer: { name: name.trim(), notes: notes.trim() || undefined },
+        items: items.map((it) => ({
+          id: String(it.id),
+          name: String(it.name),
+          qty: Number(it.qty),
+          unitPrice: Number(it.price),
+        })),
+        currency: "ARS",
+        payment_method: "alias",
+      });
+
+      const orderId = order?.id;
+      if (!orderId) {
+        throw new Error("No se pudo crear la orden (sin id).");
+      }
+
+      window.location.href = `/checkout/cash-confirmation?order_id=${encodeURIComponent(orderId)}`;
+    } catch (err) {
+      setPayError(
+        err?.message ||
+          "No se pudo registrar el pedido. Intentá nuevamente en unos segundos."
+      );
+      setPayLoading(false);
     }
   };
 
@@ -145,7 +113,7 @@ export default function Cart() {
         <div>
           <h1 className="cartTitle">Carrito</h1>
           <div className="cartSub">
-            Revisá tu pedido y confirmá por Mercado Pago o WhatsApp.
+            Revisá tu pedido y elegí cómo pagar.
           </div>
         </div>
 
@@ -162,6 +130,41 @@ export default function Cart() {
             <Link className="cartBackBtn" to="/">
               Volver al menú
             </Link>
+          </div>
+        </div>
+      ) : showAliasStep ? (
+        <div className="cardPro" style={{ maxWidth: "420px", margin: "0 auto" }}>
+          <div className="cardProHead">
+            <div className="cardProTitle">Pagar por alias</div>
+          </div>
+          <div style={{ marginBottom: "1rem" }}>
+            <div style={{ fontSize: "0.85rem", color: "var(--muted, #888)", marginBottom: "0.25rem" }}>Alias</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: 700, letterSpacing: "0.02em" }}>{PAYMENT_ALIAS}</div>
+          </div>
+          <div style={{ marginBottom: "1.25rem" }}>
+            <div style={{ fontSize: "0.85rem", color: "var(--muted, #888)", marginBottom: "0.25rem" }}>Total a pagar</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>${totalPrice}</div>
+          </div>
+          {payError ? (
+            <div className="alert alertError" style={{ marginBottom: "1rem" }}>
+              <div className="alertText">{payError}</div>
+            </div>
+          ) : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <button
+              className="btn btnPrimary btnBlock"
+              onClick={handleYaTransferi}
+              disabled={payLoading}
+            >
+              {payLoading ? "Registrando..." : "Ya transferí"}
+            </button>
+            <button
+              className="btn btnGhost btnBlock"
+              onClick={() => { setShowAliasStep(false); setPayError(""); }}
+              disabled={payLoading}
+            >
+              Volver
+            </button>
           </div>
         </div>
       ) : (
@@ -181,7 +184,7 @@ export default function Cart() {
                     <button
                       className="qtyBtn"
                       onClick={() => setQty(item.id, item.qty - 1)}
-                      disabled={mpLoading}
+                      disabled={payLoading}
                     >
                       –
                     </button>
@@ -191,7 +194,7 @@ export default function Cart() {
                     <button
                       className="qtyBtn"
                       onClick={() => setQty(item.id, item.qty + 1)}
-                      disabled={mpLoading}
+                      disabled={payLoading}
                     >
                       +
                     </button>
@@ -200,7 +203,7 @@ export default function Cart() {
                   <button
                     className="btn btnDanger"
                     onClick={() => removeItem(item.id)}
-                    disabled={mpLoading}
+                    disabled={payLoading}
                   >
                     Eliminar
                   </button>
@@ -224,7 +227,7 @@ export default function Cart() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ej: Juan Pérez"
-                    disabled={mpLoading}
+                    disabled={payLoading}
                   />
                 </div>
 
@@ -236,7 +239,7 @@ export default function Cart() {
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Ej: sin cebolla, con mayonesa, etc."
                     rows={4}
-                    disabled={mpLoading}
+                    disabled={payLoading}
                   />
                 </div>
               </div>
@@ -262,49 +265,37 @@ export default function Cart() {
                 </div>
               </div>
 
-              {mpError ? (
+              {payError ? (
                 <div className="alert alertError">
                   <div className="alertTitle">Atención</div>
-                  <div className="alertText">{mpError}</div>
+                  <div className="alertText">{payError}</div>
                 </div>
               ) : null}
 
               <div className="actions desktopOnly">
                 <button
                   className="btn btnPrimary btnBlock"
-                  onClick={handleMercadoPago}
-                  disabled={mpLoading}
+                  onClick={handlePagarPorAlias}
+                  disabled={payLoading}
                 >
-                  {mpLoading ? "Redirigiendo..." : "Pagar con Mercado Pago"}
+                  Pagar por alias
                 </button>
 
                 <button
                   className="btn btnSecondary btnBlock"
                   onClick={handleEfectivo}
-                  disabled={mpLoading}
+                  disabled={payLoading}
                 >
-                  {mpLoading ? "Registrando..." : "Pagar en efectivo"}
-                </button>
-
-                <button
-                  className="btn btnSecondary btnBlock"
-                  onClick={handleWhatsApp}
-                  disabled={mpLoading}
-                >
-                  Enviar pedido por WhatsApp
+                  {payLoading ? "Registrando..." : "Pagar en efectivo"}
                 </button>
 
                 <button
                   className="btn btnGhost btnBlock"
                   onClick={clear}
-                  disabled={mpLoading}
+                  disabled={payLoading}
                 >
                   Vaciar carrito
                 </button>
-
-                <div className="finePrint">
-                  * En Render free puede haber demora al “despertar” el servidor.
-                </div>
               </div>
             </div>
           </div>
@@ -318,26 +309,18 @@ export default function Cart() {
 
               <button
                 className="btn btnPrimary mobilePayBtn"
-                onClick={handleMercadoPago}
-                disabled={mpLoading}
+                onClick={handlePagarPorAlias}
+                disabled={payLoading}
               >
-                {mpLoading ? "Redirigiendo..." : "Mercado Pago"}
+                Pagar por alias
               </button>
 
               <button
                 className="btn btnSecondary mobilePayBtn"
                 onClick={handleEfectivo}
-                disabled={mpLoading}
+                disabled={payLoading}
               >
-                {mpLoading ? "..." : "Efectivo"}
-              </button>
-
-              <button
-                className="btn btnSecondary mobilePayBtn"
-                onClick={handleWhatsApp}
-                disabled={mpLoading}
-              >
-                WhatsApp
+                {payLoading ? "..." : "Efectivo"}
               </button>
             </div>
           </div>
