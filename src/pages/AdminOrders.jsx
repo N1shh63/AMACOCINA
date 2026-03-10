@@ -51,6 +51,83 @@ function getDateKey(iso) {
   }
 }
 
+function getDayLabel(dateKey, sampleIso) {
+  if (!dateKey || dateKey === "sin-fecha") return "Sin fecha";
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+  if (dateKey === todayKey) return "Hoy";
+  if (dateKey === yesterdayKey) return "Ayer";
+  try {
+    return formatDateOnly(sampleIso);
+  } catch {
+    return dateKey;
+  }
+}
+
+function computeGlobalStats(orders) {
+  if (!orders || orders.length === 0) {
+    return { totalOrders: 0, totalAmount: 0, avgTicket: 0, topCustomerByOrders: null, topCustomerByAmount: null, topProduct: null, topPaymentMethod: null };
+  }
+  const totalAmount = orders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+  const byCustomerOrders = {};
+  const byCustomerAmount = {};
+  const byProduct = {};
+  const byPayment = {};
+  orders.forEach((o) => {
+    const name = (o.customer?.name || "").trim() || "—";
+    byCustomerOrders[name] = (byCustomerOrders[name] || 0) + 1;
+    byCustomerAmount[name] = (byCustomerAmount[name] || 0) + Number(o.total || 0);
+    const method = o.paymentMethod || "—";
+    byPayment[method] = (byPayment[method] || 0) + 1;
+    (o.items || []).forEach((it) => {
+      const key = it.name || it.id || "—";
+      byProduct[key] = (byProduct[key] || 0) + Number(it.qty || 0);
+    });
+  });
+  const topCustomerByOrders = Object.entries(byCustomerOrders).sort((a, b) => b[1] - a[1])[0];
+  const topCustomerByAmount = Object.entries(byCustomerAmount).sort((a, b) => b[1] - a[1])[0];
+  const topProduct = Object.entries(byProduct).sort((a, b) => b[1] - a[1])[0];
+  const topPaymentMethod = Object.entries(byPayment).sort((a, b) => b[1] - a[1])[0];
+  return {
+    totalOrders: orders.length,
+    totalAmount,
+    avgTicket: orders.length ? Math.round(totalAmount / orders.length) : 0,
+    topCustomerByOrders: topCustomerByOrders ? { name: topCustomerByOrders[0], count: topCustomerByOrders[1] } : null,
+    topCustomerByAmount: topCustomerByAmount ? { name: topCustomerByAmount[0], amount: topCustomerByAmount[1] } : null,
+    topProduct: topProduct ? { name: topProduct[0], qty: topProduct[1] } : null,
+    topPaymentMethod: topPaymentMethod ? { method: topPaymentMethod[0], count: topPaymentMethod[1] } : null,
+  };
+}
+
+function computeDayStats(dayOrders) {
+  if (!dayOrders || dayOrders.length === 0) {
+    return { count: 0, totalAmount: 0, avgTicket: 0, topCustomer: null, topProduct: null };
+  }
+  const totalAmount = dayOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+  const byCustomer = {};
+  const byProduct = {};
+  dayOrders.forEach((o) => {
+    const name = (o.customer?.name || "").trim() || "—";
+    byCustomer[name] = (byCustomer[name] || 0) + 1;
+    (o.items || []).forEach((it) => {
+      const key = it.name || it.id || "—";
+      byProduct[key] = (byProduct[key] || 0) + Number(it.qty || 0);
+    });
+  });
+  const topCustomer = Object.entries(byCustomer).sort((a, b) => b[1] - a[1])[0];
+  const topProduct = Object.entries(byProduct).sort((a, b) => b[1] - a[1])[0];
+  return {
+    count: dayOrders.length,
+    totalAmount,
+    avgTicket: dayOrders.length ? Math.round(totalAmount / dayOrders.length) : 0,
+    topCustomer: topCustomer ? { name: topCustomer[0], count: topCustomer[1] } : null,
+    topProduct: topProduct ? { name: topProduct[0], qty: topProduct[1] } : null,
+  };
+}
+
 function paymentMethodLabel(method) {
   if (!method) return "—";
   const map = { mercadopago: "Mercado Pago", efectivo: "Efectivo", whatsapp: "WhatsApp", alias: "Alias" };
@@ -182,21 +259,64 @@ function AdminOrdersContent() {
             byDate[k].push(o);
           });
           const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
+          const global = computeGlobalStats(orders);
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              {dateKeys.map((dateKey) => (
+              <div
+                className="card"
+                style={{
+                  padding: "1rem 1.25rem",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  background: "rgba(255,255,255,0.04)",
+                }}
+              >
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "rgba(255,255,255,0.6)", marginBottom: "0.5rem" }}>
+                  Resumen general
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem 1.5rem", fontSize: "0.85rem" }}>
+                  <span>Pedidos: <strong>{global.totalOrders}</strong></span>
+                  <span>Total: <strong>${global.totalAmount}</strong></span>
+                  <span>Ticket prom.: <strong>${global.avgTicket}</strong></span>
+                  {global.topCustomerByOrders && (
+                    <span>Más pedidos: <strong>{global.topCustomerByOrders.name}</strong> ({global.topCustomerByOrders.count})</span>
+                  )}
+                  {global.topCustomerByAmount && (
+                    <span>Mayor monto: <strong>{global.topCustomerByAmount.name}</strong> (${global.topCustomerByAmount.amount})</span>
+                  )}
+                  {global.topProduct && (
+                    <span>Más vendido: <strong>{global.topProduct.name}</strong> ({global.topProduct.qty})</span>
+                  )}
+                  {global.topPaymentMethod && (
+                    <span>Pago más usado: <strong>{paymentMethodLabel(global.topPaymentMethod.method)}</strong></span>
+                  )}
+                </div>
+              </div>
+              {dateKeys.map((dateKey) => {
+                const dayOrders = byDate[dateKey] || [];
+                const dayStats = computeDayStats(dayOrders);
+                return (
                 <div key={dateKey}>
                   <div
                     style={{
                       fontSize: "0.8rem",
                       fontWeight: 700,
                       color: "rgba(255,255,255,0.6)",
-                      marginBottom: "0.75rem",
+                      marginBottom: "0.5rem",
                       textTransform: "capitalize",
                     }}
                   >
-                    {dateKey === "sin-fecha" ? "Sin fecha" : formatDateOnly(byDate[dateKey][0]?.createdAt)}
+                    {getDayLabel(dateKey, dayOrders[0]?.createdAt)}
                   </div>
+                  {dayStats.count > 0 && (
+                    <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginBottom: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.5rem 1rem" }}>
+                      <span>{dayStats.count} pedido{dayStats.count !== 1 ? "s" : ""}</span>
+                      <span>Total: ${dayStats.totalAmount}</span>
+                      <span>Ticket prom.: ${dayStats.avgTicket}</span>
+                      {dayStats.topCustomer && <span>Más pedidos: {dayStats.topCustomer.name}</span>}
+                      {dayStats.topProduct && <span>Más pedido: {dayStats.topProduct.name}</span>}
+                    </div>
+                  )}
                   <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                     {byDate[dateKey].map((order) => (
                       <div
@@ -358,7 +478,8 @@ function AdminOrdersContent() {
           ))}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           );
         })()
