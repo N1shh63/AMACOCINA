@@ -140,14 +140,9 @@ export default function Menu() {
 
         {/* FOOTER */}
         <footer className="menuFooter">
-          <div className="footerLeft">
+          <div>
             <div className="footerBrand">AmaCocina</div>
-            <div className="footerText">Pedidos por WhatsApp · Pago con Mercado Pago</div>
-          </div>
-
-          <div className="footerRight">
-            <div>Horarios: (editar)</div>
-            <div className="footerText">Zona de envío: (editar)</div>
+            <div className="footerText">Pedidos por WhatsApp</div>
           </div>
         </footer>
       </section>

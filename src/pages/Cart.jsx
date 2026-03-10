@@ -132,6 +132,8 @@ export default function Cart() {
       })),
       totalPrice: aliasOrder.total,
       customer: aliasOrder.customer || { name: "", notes: "" },
+      orderId: aliasOrder.id,
+      paymentMethod: "alias",
     });
     openWhatsApp({ phoneE164: WHATSAPP_PHONE, message });
     clear();

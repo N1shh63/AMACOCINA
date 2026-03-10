@@ -47,6 +47,8 @@ export default function CheckoutCashConfirmation() {
       })),
       totalPrice: order.total,
       customer: order.customer || { name: "", notes: "" },
+      orderId: order.id,
+      paymentMethod: order.paymentMethod || "efectivo",
     });
     openWhatsApp({ phoneE164: WHATSAPP_PHONE, message });
   };
