@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { createOrder, getOrderById, listOrders, updateOrderStatus } = require("../repositories/orders.repo");
+const { createOrder, getOrderById, listOrders, updateOrderStatus, cleanOrders } = require("../repositories/orders.repo");
 
 const ALLOWED_ORDER_STATUS = ["nuevo", "en_preparacion", "enviado", "entregado"];
 const ALLOWED_PAYMENT_STATUS = ["pendiente", "pagado", "cancelado"];
@@ -114,12 +114,30 @@ async function listOrdersHandler(req, res, next) {
     const offset = req.query.offset;
     const order_status = req.query.order_status;
     const payment_status = req.query.payment_status;
+    const exclude_order_status = req.query.exclude_order_status;
 
     const result = await listOrders({
       limit: limit != null ? limit : 100,
       offset: offset != null ? offset : 0,
       order_status: order_status != null ? order_status : undefined,
       payment_status: payment_status != null ? payment_status : undefined,
+      exclude_order_status: exclude_order_status != null ? exclude_order_status : undefined,
+    });
+
+    return res.json(result);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function cleanOrdersHandler(req, res, next) {
+  try {
+    const olderThanDays = req.body?.older_than_days != null ? Number(req.body.older_than_days) : 30;
+    const deleteEntregado = req.body?.delete_entregado !== false;
+
+    const result = await cleanOrders({
+      olderThanDays: Math.max(1, Math.min(365, olderThanDays)),
+      deleteEntregado,
     });
 
     return res.json(result);
@@ -177,5 +195,5 @@ async function patchOrderHandler(req, res, next) {
   }
 }
 
-module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler };
+module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler, cleanOrdersHandler };
 

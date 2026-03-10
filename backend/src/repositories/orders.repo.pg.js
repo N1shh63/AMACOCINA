@@ -43,10 +43,8 @@ function rowToOrder(orderRow, itemRows) {
 
 async function createOrder({ id, customer, items, currency, source, clientUserAgent, paymentMethod }) {
   const now = new Date().toISOString();
-  const isEfectivo = paymentMethod === "efectivo";
-  const isAlias = paymentMethod === "alias";
-  const orderStatus = isEfectivo || isAlias ? "nuevo" : "draft";
-  const paymentStatus = isEfectivo || isAlias ? "pendiente" : "unpaid";
+  const orderStatus = "draft";
+  const paymentStatus = paymentMethod === "efectivo" || paymentMethod === "alias" ? "pendiente" : "unpaid";
 
   const normalizedItems = items.map((it) => {
     const qty = Number(it.qty);
@@ -126,7 +124,7 @@ async function getOrderById(id) {
   return rowToOrder(orderRow, itemsResult.rows);
 }
 
-async function listOrders({ limit = 100, offset = 0, order_status, payment_status } = {}) {
+async function listOrders({ limit = 100, offset = 0, order_status, payment_status, exclude_order_status } = {}) {
   const l = Math.min(Math.max(Number(limit) || 100, 1), 500);
   const o = Math.max(Number(offset) || 0, 0);
   const conditions = [];
@@ -139,6 +137,10 @@ async function listOrders({ limit = 100, offset = 0, order_status, payment_statu
   if (payment_status != null && String(payment_status).trim() !== "") {
     conditions.push(`payment_status = $${idx++}`);
     params.push(String(payment_status).trim());
+  }
+  if (exclude_order_status != null && String(exclude_order_status).trim() !== "") {
+    conditions.push(`order_status != $${idx++}`);
+    params.push(String(exclude_order_status).trim());
   }
   const where = conditions.length ? " WHERE " + conditions.join(" AND ") : "";
   params.push(l, o);
@@ -200,10 +202,25 @@ async function updateOrderStatus(orderId, { orderStatus, paymentStatus }) {
   return (result.rowCount || 0) > 0;
 }
 
+async function cleanOrders({ olderThanDays = 30, deleteEntregado = true } = {}) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - Number(olderThanDays) || 0);
+  const cutoffIso = cutoff.toISOString();
+  const conditions = [];
+  const params = [];
+  if (deleteEntregado) conditions.push("order_status = 'entregado'");
+  conditions.push("created_at < $1");
+  params.push(cutoffIso);
+  const where = " WHERE " + conditions.join(" OR ");
+  const result = await pool.query("DELETE FROM orders" + where, params);
+  return { deleted: result.rowCount || 0 };
+}
+
 module.exports = {
   createOrder,
   getOrderById,
   setMercadoPagoPreference,
   listOrders,
   updateOrderStatus,
+  cleanOrders,
 };

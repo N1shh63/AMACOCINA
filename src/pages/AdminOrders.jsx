@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
-import { getOrders, updateOrderStatus } from "../services/orders";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getOrders, updateOrderStatus, cleanOrders } from "../services/orders";
 import { isAdminLogged } from "./AdminLogin";
 
 function formatDate(iso) {
@@ -173,6 +173,21 @@ export default function AdminOrders() {
   return <AdminOrdersContent />;
 }
 
+function filterOrdersByView(orders, viewMode) {
+  if (!orders || orders.length === 0) return [];
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  if (viewMode === "hoy") {
+    return orders.filter((o) => getDateKey(o.createdAt) === todayKey);
+  }
+  if (viewMode === "semana") {
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return orders.filter((o) => new Date(o.createdAt) >= weekAgo);
+  }
+  return orders;
+}
+
 function AdminOrdersContent() {
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
@@ -180,15 +195,24 @@ function AdminOrdersContent() {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatingId, setUpdatingId] = useState(null);
+  const [viewMode, setViewMode] = useState("calendario");
+  const [cleanLoading, setCleanLoading] = useState(false);
+  const [cleanConfirm, setCleanConfirm] = useState(false);
+  const [cleanOlderDays, setCleanOlderDays] = useState(30);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const filteredOrders = useMemo(
+    () => filterOrdersByView(orders, viewMode),
+    [orders, viewMode]
+  );
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
 
-    getOrders({ limit: 100, offset: 0 })
+    getOrders({ limit: 200, offset: 0, exclude_order_status: "draft" })
       .then((data) => {
         if (!cancelled) {
           setOrders(data.orders || []);
@@ -234,32 +258,96 @@ function AdminOrdersContent() {
     );
   }
 
+  const handleCleanOrders = () => {
+    setCleanLoading(true);
+    cleanOrders({ older_than_days: cleanOlderDays, delete_entregado: true })
+      .then((r) => {
+        setCleanConfirm(false);
+        refresh();
+      })
+      .catch(() => {})
+      .finally(() => setCleanLoading(false));
+  };
+
   return (
     <section className="container">
-      <div style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+      <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800 }}>Pedidos</h1>
         <span className="muted" style={{ fontSize: "0.9rem" }}>
-          {total} pedido{total !== 1 ? "s" : ""}
+          {total} pedido{total !== 1 ? "s" : ""} (sin borradores)
         </span>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {["hoy", "semana", "calendario"].map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={viewMode === mode ? "btn btnPrimary" : "btn btnGhost"}
+              style={{ fontSize: "0.85rem", padding: "8px 12px" }}
+              onClick={() => setViewMode(mode)}
+            >
+              {mode === "hoy" ? "Hoy" : mode === "semana" ? "Semana" : "Calendario"}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="btn btnSecondary"
+          style={{ fontSize: "0.85rem" }}
+          onClick={() => setCleanConfirm(true)}
+          disabled={cleanLoading}
+        >
+          Limpiar pedidos
+        </button>
         <Link to="/" className="btn btnGhost" style={{ marginLeft: "auto" }}>
           ← Menú
         </Link>
       </div>
 
-      {orders.length === 0 ? (
+      {cleanConfirm && (
+        <div className="card" style={{ marginBottom: "1rem", padding: "1rem 1.25rem", maxWidth: "420px" }}>
+          <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Limpiar pedidos</div>
+          <p style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.8)", marginBottom: "0.75rem" }}>
+            Se eliminarán pedidos entregados y pedidos más antiguos que los días indicados.
+          </p>
+          <div style={{ marginBottom: "0.75rem" }}>
+            <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>Más antiguos que (días)</label>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={cleanOlderDays}
+              onChange={(e) => setCleanOlderDays(Number(e.target.value) || 30)}
+              className="input"
+              style={{ width: "80px", padding: "8px" }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <button type="button" className="btn btnPrimary" onClick={handleCleanOrders} disabled={cleanLoading}>
+              {cleanLoading ? "Eliminando..." : "Eliminar"}
+            </button>
+            <button type="button" className="btn btnGhost" onClick={() => setCleanConfirm(false)} disabled={cleanLoading}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {filteredOrders.length === 0 ? (
         <div className="card" style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center", padding: "2rem" }}>
-          <p className="muted">No hay pedidos todavía.</p>
+          <p className="muted">
+            {orders.length === 0 ? "No hay pedidos todavía." : "No hay pedidos en esta vista (Hoy / Semana / Calendario)."}
+          </p>
         </div>
       ) : (
         (() => {
           const byDate = {};
-          (orders || []).forEach((o) => {
+          (filteredOrders || []).forEach((o) => {
             const k = getDateKey(o.createdAt) || "sin-fecha";
             if (!byDate[k]) byDate[k] = [];
             byDate[k].push(o);
           });
           const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
-          const global = computeGlobalStats(orders);
+          const global = computeGlobalStats(filteredOrders);
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div

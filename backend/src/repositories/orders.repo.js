@@ -51,10 +51,8 @@ if (usePg) {
   function createOrderSync({ id, customer, items, currency, source, clientUserAgent, paymentMethod }) {
     const db = getDb();
     const now = new Date().toISOString();
-    const isEfectivo = paymentMethod === "efectivo";
-    const isAlias = paymentMethod === "alias";
-    const orderStatus = isEfectivo || isAlias ? "nuevo" : "draft";
-    const paymentStatus = isEfectivo || isAlias ? "pendiente" : "unpaid";
+    const orderStatus = "draft";
+    const paymentStatus = paymentMethod === "efectivo" || paymentMethod === "alias" ? "pendiente" : "unpaid";
 
     const normalizedItems = items.map((it) => {
       const qty = Number(it.qty);
@@ -140,7 +138,7 @@ if (usePg) {
     return rowToOrder(orderRow, itemRows);
   }
 
-  function listOrdersSync({ limit = 100, offset = 0, order_status, payment_status } = {}) {
+  function listOrdersSync({ limit = 100, offset = 0, order_status, payment_status, exclude_order_status } = {}) {
     const db = getDb();
     const l = Math.min(Math.max(Number(limit) || 100, 1), 500);
     const o = Math.max(Number(offset) || 0, 0);
@@ -155,6 +153,11 @@ if (usePg) {
     if (payment_status != null && String(payment_status).trim() !== "") {
       conditions.push("payment_status = ?");
       params.push(String(payment_status).trim());
+    }
+
+    if (exclude_order_status != null && String(exclude_order_status).trim() !== "") {
+      conditions.push("order_status != ?");
+      params.push(String(exclude_order_status).trim());
     }
 
     const where = conditions.length ? " WHERE " + conditions.join(" AND ") : "";
@@ -229,6 +232,24 @@ if (usePg) {
     return info.changes > 0;
   }
 
+  function cleanOrdersSync({ olderThanDays = 30, deleteEntregado = true } = {}) {
+    const db = getDb();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - Number(olderThanDays) || 0);
+    const cutoffIso = cutoff.toISOString();
+    const sql =
+      deleteEntregado
+        ? "SELECT id FROM orders WHERE order_status = 'entregado' OR created_at < ?"
+        : "SELECT id FROM orders WHERE created_at < ?";
+    const rows = db.prepare(sql).all(cutoffIso);
+    if (rows.length === 0) return { deleted: 0 };
+    const ids = rows.map((r) => r.id);
+    const placeholders = ids.map(() => "?").join(",");
+    db.prepare("DELETE FROM order_items WHERE order_id IN (" + placeholders + ")").run(...ids);
+    db.prepare("DELETE FROM orders WHERE id IN (" + placeholders + ")").run(...ids);
+    return { deleted: ids.length };
+  }
+
   module.exports = {
     createOrder: (...args) => Promise.resolve(createOrderSync(...args)),
     getOrderById: (...args) => Promise.resolve(getOrderByIdSync(...args)),
@@ -236,5 +257,6 @@ if (usePg) {
     setMercadoPagoPreference: (...args) =>
       Promise.resolve(setMercadoPagoPreferenceSync(...args)),
     updateOrderStatus: (...args) => Promise.resolve(updateOrderStatusSync(...args)),
+    cleanOrders: (...args) => Promise.resolve(cleanOrdersSync(...args)),
   };
 }

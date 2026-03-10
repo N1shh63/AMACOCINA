@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useCart } from "../store/CartContext";
-import { createOrder } from "../services/orders";
+import { createOrder, updateOrderStatus } from "../services/orders";
 import { buildWhatsAppMessage, openWhatsApp } from "../utils/whatsapp";
 
 const PAYMENT_ALIAS = "amacocina";
@@ -57,6 +57,7 @@ export default function Cart() {
         throw new Error("No se pudo crear la orden (sin id).");
       }
 
+      await updateOrderStatus(orderId, { order_status: "nuevo" });
       window.location.href = `/checkout/cash-confirmation?order_id=${encodeURIComponent(orderId)}`;
     } catch (err) {
       setPayError(
@@ -122,6 +123,7 @@ export default function Cart() {
 
   const handleEnviarWhatsAppAlias = () => {
     if (!aliasOrder) return;
+    updateOrderStatus(aliasOrder.id, { order_status: "nuevo" }).catch(() => {});
     const message = buildWhatsAppMessage({
       items: (aliasOrder.items || []).map((i) => ({
         qty: i.qty,
@@ -132,6 +134,7 @@ export default function Cart() {
       customer: aliasOrder.customer || { name: "", notes: "" },
     });
     openWhatsApp({ phoneE164: WHATSAPP_PHONE, message });
+    clear();
   };
 
   return (
@@ -171,10 +174,7 @@ export default function Cart() {
           </p>
           <button
             className="btn btnPrimary btnBlock"
-            onClick={() => {
-              handleEnviarWhatsAppAlias();
-              clear();
-            }}
+            onClick={handleEnviarWhatsAppAlias}
           >
             Enviar pedido por WhatsApp
           </button>
