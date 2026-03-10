@@ -43,3 +43,22 @@ export async function getOrders({ limit = 100, offset = 0 } = {}) {
 
   return data;
 }
+
+export async function updateOrderStatus(id, { order_status, payment_status }) {
+  const body = {};
+  if (order_status != null) body.order_status = order_status;
+  if (payment_status != null) body.payment_status = payment_status;
+  const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const msg = data?.error || "Error actualizando pedido";
+    throw new Error(msg);
+  }
+
+  return data;
+}

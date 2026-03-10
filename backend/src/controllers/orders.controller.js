@@ -1,5 +1,8 @@
 const crypto = require("crypto");
-const { createOrder, getOrderById, listOrders } = require("../repositories/orders.repo");
+const { createOrder, getOrderById, listOrders, updateOrderStatus } = require("../repositories/orders.repo");
+
+const ALLOWED_ORDER_STATUS = ["nuevo", "en_preparacion", "enviado", "entregado"];
+const ALLOWED_PAYMENT_STATUS = ["pendiente", "pagado", "cancelado"];
 
 function badRequest(res, details) {
   return res.status(400).json({ error: "Invalid payload", details });
@@ -125,5 +128,54 @@ async function listOrdersHandler(req, res, next) {
   }
 }
 
-module.exports = { postOrders, getOrder, listOrdersHandler };
+async function patchOrderHandler(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!id || String(id).trim() === "") {
+      return res.status(400).json({ error: "id is required" });
+    }
+
+    const existing = getOrderById(String(id));
+    if (!existing) return res.status(404).json({ error: "Order not found" });
+
+    const order_status = req.body?.order_status;
+    const payment_status = req.body?.payment_status;
+
+    let newOrderStatus = undefined;
+    let newPaymentStatus = undefined;
+
+    if (order_status != null && order_status !== "") {
+      const v = String(order_status).trim().toLowerCase();
+      if (!ALLOWED_ORDER_STATUS.includes(v)) {
+        return res.status(400).json({ error: "order_status inválido", allowed: ALLOWED_ORDER_STATUS });
+      }
+      newOrderStatus = v;
+    }
+    if (payment_status != null && payment_status !== "") {
+      const v = String(payment_status).trim().toLowerCase();
+      if (!ALLOWED_PAYMENT_STATUS.includes(v)) {
+        return res.status(400).json({ error: "payment_status inválido", allowed: ALLOWED_PAYMENT_STATUS });
+      }
+      newPaymentStatus = v;
+    }
+
+    if (newOrderStatus === undefined && newPaymentStatus === undefined) {
+      return res.status(400).json({ error: "Se requiere order_status y/o payment_status" });
+    }
+
+    const updated = updateOrderStatus(String(id), {
+      orderStatus: newOrderStatus,
+      paymentStatus: newPaymentStatus,
+    });
+
+    if (!updated) return res.status(404).json({ error: "Order not found" });
+
+    const order = getOrderById(String(id));
+    return res.json(order);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler };
 

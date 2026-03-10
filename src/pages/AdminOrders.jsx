@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getOrders } from "../services/orders";
+import { useCallback, useEffect, useState } from "react";
+import { getOrders, updateOrderStatus } from "../services/orders";
 import { isAdminLogged } from "./AdminLogin";
 
 function formatDate(iso) {
@@ -53,13 +53,16 @@ function getDateKey(iso) {
 
 function paymentMethodLabel(method) {
   if (!method) return "—";
-  const map = { mercadopago: "Mercado Pago", efectivo: "Efectivo", whatsapp: "WhatsApp" };
+  const map = { mercadopago: "Mercado Pago", efectivo: "Efectivo", whatsapp: "WhatsApp", alias: "Alias" };
   return map[method] || method;
 }
 
 function paymentStatusLabel(status) {
   if (!status) return "—";
   const map = {
+    pendiente: "Pendiente",
+    pagado: "Pagado",
+    cancelado: "Cancelado",
     paid: "Pagado",
     unpaid: "No pagado",
     pending: "Pendiente",
@@ -72,6 +75,10 @@ function paymentStatusLabel(status) {
 function orderStatusLabel(status) {
   if (!status) return "—";
   const map = {
+    nuevo: "Nuevo",
+    en_preparacion: "En preparación",
+    enviado: "Enviado",
+    entregado: "Entregado",
     draft: "Borrador",
     submitted: "Enviado",
     confirmed: "Confirmado",
@@ -94,6 +101,10 @@ function AdminOrdersContent() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,7 +128,7 @@ function AdminOrdersContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   if (loading) {
     return (
@@ -241,6 +252,82 @@ function AdminOrdersContent() {
                     Estado pedido
                   </div>
                   <div>{orderStatusLabel(order.orderStatus)}</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "6px" }}>
+                  Acciones
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  {order.paymentStatus !== "pagado" && (
+                    <button
+                      type="button"
+                      className="btn btnSecondary"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
+                      disabled={updatingId === order.id}
+                      onClick={() => {
+                        setUpdatingId(order.id);
+                        updateOrderStatus(order.id, { payment_status: "pagado" })
+                          .then(() => refresh())
+                          .catch(() => {})
+                          .finally(() => setUpdatingId(null));
+                      }}
+                    >
+                      Confirmar pago
+                    </button>
+                  )}
+                  {order.orderStatus !== "en_preparacion" && (
+                    <button
+                      type="button"
+                      className="btn btnGhost"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
+                      disabled={updatingId === order.id}
+                      onClick={() => {
+                        setUpdatingId(order.id);
+                        updateOrderStatus(order.id, { order_status: "en_preparacion" })
+                          .then(() => refresh())
+                          .catch(() => {})
+                          .finally(() => setUpdatingId(null));
+                      }}
+                    >
+                      En preparación
+                    </button>
+                  )}
+                  {order.orderStatus !== "enviado" && (
+                    <button
+                      type="button"
+                      className="btn btnGhost"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
+                      disabled={updatingId === order.id}
+                      onClick={() => {
+                        setUpdatingId(order.id);
+                        updateOrderStatus(order.id, { order_status: "enviado" })
+                          .then(() => refresh())
+                          .catch(() => {})
+                          .finally(() => setUpdatingId(null));
+                      }}
+                    >
+                      Enviado
+                    </button>
+                  )}
+                  {order.orderStatus !== "entregado" && (
+                    <button
+                      type="button"
+                      className="btn btnPrimary"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
+                      disabled={updatingId === order.id}
+                      onClick={() => {
+                        setUpdatingId(order.id);
+                        updateOrderStatus(order.id, { order_status: "entregado" })
+                          .then(() => refresh())
+                          .catch(() => {})
+                          .finally(() => setUpdatingId(null));
+                      }}
+                    >
+                      Entregado
+                    </button>
+                  )}
                 </div>
               </div>
 

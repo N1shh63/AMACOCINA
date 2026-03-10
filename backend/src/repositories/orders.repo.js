@@ -49,8 +49,9 @@ function createOrder({ id, customer, items, currency, source, clientUserAgent, p
   const now = new Date().toISOString();
 
   const isEfectivo = paymentMethod === "efectivo";
-  const orderStatus = isEfectivo ? "submitted" : "draft";
-  const paymentStatus = "unpaid";
+  const isAlias = paymentMethod === "alias";
+  const orderStatus = isEfectivo || isAlias ? "nuevo" : "draft";
+  const paymentStatus = isEfectivo || isAlias ? "pendiente" : "unpaid";
 
   const normalizedItems = items.map((it) => {
     const qty = Number(it.qty);
@@ -195,5 +196,37 @@ function setMercadoPagoPreference({ orderId, preferenceId, externalReference }) 
   return info.changes > 0;
 }
 
-module.exports = { createOrder, getOrderById, setMercadoPagoPreference, listOrders };
+function updateOrderStatus(orderId, { orderStatus, paymentStatus }) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const id = String(orderId);
+
+  const updates = [];
+  const params = [];
+
+  if (orderStatus != null && String(orderStatus).trim() !== "") {
+    updates.push("order_status = ?");
+    params.push(String(orderStatus).trim());
+  }
+  if (paymentStatus != null && String(paymentStatus).trim() !== "") {
+    updates.push("payment_status = ?");
+    params.push(String(paymentStatus).trim());
+  }
+
+  if (updates.length === 0) return false;
+
+  updates.push("updated_at = ?");
+  params.push(now);
+  params.push(id);
+
+  const info = db
+    .prepare(
+      `UPDATE orders SET ${updates.join(", ")} WHERE id = ?`
+    )
+    .run(...params);
+
+  return info.changes > 0;
+}
+
+module.exports = { createOrder, getOrderById, setMercadoPagoPreference, listOrders, updateOrderStatus };
 
