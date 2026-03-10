@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { products } from "../data/products";
 import ProductCard from "../components/ProductCard";
+import MenusEjecutivosSection from "../components/MenusEjecutivosSection";
 
 function formatCategoryTitle(cat) {
   if (!cat) return "";
@@ -91,6 +92,9 @@ export default function Menu() {
           </div>
         ))}
       </section>
+
+      {/* MENÚS EJECUTIVOS (placeholder) */}
+      <MenusEjecutivosSection />
 
       {/* MENÚ */}
       <section id="menu" ref={menuRef} className="menuSection">
