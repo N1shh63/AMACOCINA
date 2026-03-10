@@ -2,8 +2,10 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useCart } from "../store/CartContext";
 import { createOrder } from "../services/orders";
+import { buildWhatsAppMessage, openWhatsApp } from "../utils/whatsapp";
 
 const PAYMENT_ALIAS = "amacocina";
+const WHATSAPP_PHONE = "5491158182038";
 
 export default function Cart() {
   const { items, setQty, removeItem, clear, totalPrice } = useCart();
@@ -16,6 +18,8 @@ export default function Cart() {
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState("");
   const [showAliasStep, setShowAliasStep] = useState(false);
+  const [showAliasThankYou, setShowAliasThankYou] = useState(false);
+  const [aliasOrder, setAliasOrder] = useState(null);
 
   const hasItems = items.length > 0;
   const nameIsValid = name.trim().length >= 3;
@@ -73,7 +77,15 @@ export default function Cart() {
     setShowAliasStep(true);
   };
 
-  const handleYaTransferi = async () => {
+  const handleCopiarAlias = async () => {
+    try {
+      await navigator.clipboard.writeText(PAYMENT_ALIAS);
+    } catch {
+      // fallback por si el navegador no soporta clipboard
+    }
+  };
+
+  const handleContinuarAlias = async () => {
     if (!hasItems || payLoading) return;
 
     setPayError("");
@@ -92,19 +104,34 @@ export default function Cart() {
         payment_method: "alias",
       });
 
-      const orderId = order?.id;
-      if (!orderId) {
+      if (!order?.id) {
         throw new Error("No se pudo crear la orden (sin id).");
       }
 
-      window.location.href = `/checkout/cash-confirmation?order_id=${encodeURIComponent(orderId)}`;
+      setAliasOrder(order);
+      setShowAliasThankYou(true);
     } catch (err) {
       setPayError(
         err?.message ||
           "No se pudo registrar el pedido. Intentá nuevamente en unos segundos."
       );
+    } finally {
       setPayLoading(false);
     }
+  };
+
+  const handleEnviarWhatsAppAlias = () => {
+    if (!aliasOrder) return;
+    const message = buildWhatsAppMessage({
+      items: (aliasOrder.items || []).map((i) => ({
+        qty: i.qty,
+        name: i.name,
+        price: i.unitPrice,
+      })),
+      totalPrice: aliasOrder.total,
+      customer: aliasOrder.customer || { name: "", notes: "" },
+    });
+    openWhatsApp({ phoneE164: WHATSAPP_PHONE, message });
   };
 
   return (
@@ -132,6 +159,26 @@ export default function Cart() {
             </Link>
           </div>
         </div>
+      ) : showAliasStep && showAliasThankYou ? (
+        <div className="cardPro" style={{ maxWidth: "420px", margin: "0 auto" }}>
+          <div className="cardProHead">
+            <div className="cardProTitle">Gracias por su compra</div>
+          </div>
+          <p style={{ marginBottom: "1.25rem", lineHeight: 1.5 }}>
+            Gracias por su compra.
+            <br />
+            No olvide enviar el comprobante de pago.
+          </p>
+          <button
+            className="btn btnPrimary btnBlock"
+            onClick={() => {
+              handleEnviarWhatsAppAlias();
+              clear();
+            }}
+          >
+            Enviar pedido por WhatsApp
+          </button>
+        </div>
       ) : showAliasStep ? (
         <div className="cardPro" style={{ maxWidth: "420px", margin: "0 auto" }}>
           <div className="cardProHead">
@@ -152,15 +199,22 @@ export default function Cart() {
           ) : null}
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             <button
-              className="btn btnPrimary btnBlock"
-              onClick={handleYaTransferi}
+              className="btn btnSecondary btnBlock"
+              onClick={handleCopiarAlias}
               disabled={payLoading}
             >
-              {payLoading ? "Registrando..." : "Ya transferí"}
+              Copiar alias
+            </button>
+            <button
+              className="btn btnPrimary btnBlock"
+              onClick={handleContinuarAlias}
+              disabled={payLoading}
+            >
+              {payLoading ? "Registrando..." : "Continuar"}
             </button>
             <button
               className="btn btnGhost btnBlock"
-              onClick={() => { setShowAliasStep(false); setPayError(""); }}
+              onClick={() => { setShowAliasStep(false); setPayError(""); setShowAliasThankYou(false); setAliasOrder(null); }}
               disabled={payLoading}
             >
               Volver
