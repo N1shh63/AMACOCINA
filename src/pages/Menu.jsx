@@ -54,8 +54,7 @@ export default function Menu() {
             <div className="heroBrand">AmaCocina</div>
             <h1 className="heroTitle">Cocina casera, sin vueltas</h1>
             <p className="heroText">
-              Armá tu pedido en minutos. Pagá con Mercado Pago o confirmá por
-              WhatsApp.
+              Armá tu pedido en minutos. Elegí cómo pagar y coordiná por WhatsApp.
             </p>
 
             <div className="heroActions">
@@ -75,15 +74,15 @@ export default function Menu() {
         {[
           {
             title: "Pedido simple",
-            desc: "Elegí, ajustá cantidades y confirmá en segundos.",
+            desc: "Elegí platos, ajustá cantidades y confirmá en segundos.",
           },
           {
-            title: "Pago seguro",
-            desc: "Checkout Pro con Mercado Pago (rápido y confiable).",
+            title: "Pago flexible",
+            desc: "Efectivo, transferencia por alias o el método que prefieras.",
           },
           {
-            title: "Envío / Retiro",
-            desc: "Coordinación por WhatsApp según zona y horarios.",
+            title: "Envío y retiro",
+            desc: "Coordinamos por WhatsApp según tu zona y horarios.",
           },
         ].map((b) => (
           <div key={b.title} className="trustCard">
