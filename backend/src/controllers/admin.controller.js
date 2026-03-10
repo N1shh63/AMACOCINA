@@ -1,9 +1,6 @@
-function postLogin(req, res) {
-  // Logs temporales diagnóstico (quitar en producción)
-  console.log("ADMIN_USER:", process.env.ADMIN_USER);
-  console.log("ADMIN_PASSWORD exists:", !!process.env.ADMIN_PASSWORD);
-  console.log("admin login body:", req.body);
+const { createToken } = require("../middleware/authAdmin");
 
+function postLogin(req, res) {
   const rawUsername = req.body?.username;
   const rawPassword = req.body?.password;
   const username = String(rawUsername ?? "").trim();
@@ -26,7 +23,8 @@ function postLogin(req, res) {
     return res.status(401).json({ error: "Credenciales incorrectas" });
   }
 
-  return res.json({ success: true });
+  const token = createToken(username);
+  return res.json({ success: true, token });
 }
 
 module.exports = { postLogin };

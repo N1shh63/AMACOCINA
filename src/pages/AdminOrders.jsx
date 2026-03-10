@@ -1,7 +1,8 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getOrders, updateOrderStatus, cleanOrders } from "../services/orders";
-import { isAdminLogged } from "./AdminLogin";
+import { getOrders, updateOrderStatus, cleanOrders, deleteOrder } from "../services/orders";
+import { isAdminLogged, setAdminLogged } from "./AdminLogin";
+import { getAdminToken, setAdminToken } from "../services/admin";
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -189,6 +190,7 @@ function filterOrdersByView(orders, viewMode) {
 }
 
 function AdminOrdersContent() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -199,8 +201,16 @@ function AdminOrdersContent() {
   const [cleanLoading, setCleanLoading] = useState(false);
   const [cleanConfirm, setCleanConfirm] = useState(false);
   const [cleanOlderDays, setCleanOlderDays] = useState(30);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const handleUnauthorized = useCallback(() => {
+    setAdminLogged(false);
+    setAdminToken(null);
+    navigate("/admin/login", { replace: true });
+  }, [navigate]);
 
   const filteredOrders = useMemo(
     () => filterOrdersByView(orders, viewMode),
@@ -211,8 +221,9 @@ function AdminOrdersContent() {
     let cancelled = false;
     setLoading(true);
     setError("");
+    const token = getAdminToken();
 
-    getOrders({ limit: 200, offset: 0, exclude_order_status: "draft" })
+    getOrders({ limit: 200, offset: 0, exclude_order_status: "draft", token })
       .then((data) => {
         if (!cancelled) {
           setOrders(data.orders || []);
@@ -220,7 +231,13 @@ function AdminOrdersContent() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e?.message || "Error al cargar pedidos");
+        if (!cancelled) {
+          if (e?.message?.includes("autorizado") || e?.message?.includes("No autorizado")) {
+            handleUnauthorized();
+            return;
+          }
+          setError(e?.message || "Error al cargar pedidos");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -229,7 +246,7 @@ function AdminOrdersContent() {
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, handleUnauthorized]);
 
   if (loading) {
     return (
@@ -260,13 +277,30 @@ function AdminOrdersContent() {
 
   const handleCleanOrders = () => {
     setCleanLoading(true);
-    cleanOrders({ older_than_days: cleanOlderDays, delete_entregado: true })
-      .then((r) => {
+    cleanOrders({ older_than_days: cleanOlderDays, delete_entregado: true, token: getAdminToken() })
+      .then(() => {
         setCleanConfirm(false);
         refresh();
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (e?.message?.includes("autorizado") || e?.message?.includes("No autorizado")) handleUnauthorized();
+      })
       .finally(() => setCleanLoading(false));
+  };
+
+  const handleDeleteOrder = (orderId) => {
+    if (!orderId) return;
+    setDeleteLoading(true);
+    deleteOrder(orderId, getAdminToken())
+      .then(() => {
+        setDeleteConfirmId(null);
+        refresh();
+      })
+      .catch((e) => {
+        if (e?.message?.includes("autorizado") || e?.message?.includes("No autorizado")) handleUnauthorized();
+        else setDeleteConfirmId(null);
+      })
+      .finally(() => setDeleteLoading(false));
   };
 
   return (
@@ -476,9 +510,9 @@ function AdminOrdersContent() {
                       disabled={updatingId === order.id}
                       onClick={() => {
                         setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { payment_status: "pagado" })
+                        updateOrderStatus(order.id, { payment_status: "pagado" }, getAdminToken())
                           .then(() => refresh())
-                          .catch(() => {})
+                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
                           .finally(() => setUpdatingId(null));
                       }}
                     >
@@ -493,9 +527,9 @@ function AdminOrdersContent() {
                       disabled={updatingId === order.id}
                       onClick={() => {
                         setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "en_preparacion" })
+                        updateOrderStatus(order.id, { order_status: "en_preparacion" }, getAdminToken())
                           .then(() => refresh())
-                          .catch(() => {})
+                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
                           .finally(() => setUpdatingId(null));
                       }}
                     >
@@ -510,9 +544,9 @@ function AdminOrdersContent() {
                       disabled={updatingId === order.id}
                       onClick={() => {
                         setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "enviado" })
+                        updateOrderStatus(order.id, { order_status: "enviado" }, getAdminToken())
                           .then(() => refresh())
-                          .catch(() => {})
+                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
                           .finally(() => setUpdatingId(null));
                       }}
                     >
@@ -527,16 +561,36 @@ function AdminOrdersContent() {
                       disabled={updatingId === order.id}
                       onClick={() => {
                         setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "entregado" })
+                        updateOrderStatus(order.id, { order_status: "entregado" }, getAdminToken())
                           .then(() => refresh())
-                          .catch(() => {})
+                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
                           .finally(() => setUpdatingId(null));
                       }}
                     >
                       Entregado
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className="btn btnGhost"
+                    style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem", color: "rgba(255, 120, 120, 0.9)" }}
+                    disabled={updatingId === order.id || deleteLoading}
+                    onClick={() => setDeleteConfirmId(deleteConfirmId === order.id ? null : order.id)}
+                  >
+                    Borrar
+                  </button>
                 </div>
+                {deleteConfirmId === order.id && (
+                  <div style={{ marginTop: "0.5rem", padding: "0.5rem", background: "rgba(0,0,0,0.2)", borderRadius: "8px", fontSize: "0.85rem" }}>
+                    <div style={{ marginBottom: "0.5rem" }}>¿Borrar pedido #{order.id}? Esta acción no se puede deshacer.</div>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button type="button" className="btn btnPrimary" style={{ fontSize: "0.8rem", background: "rgba(255,80,80,0.8)" }} disabled={deleteLoading} onClick={() => handleDeleteOrder(order.id)}>
+                        {deleteLoading ? "Borrando..." : "Sí, borrar"}
+                      </button>
+                      <button type="button" className="btn btnGhost" style={{ fontSize: "0.8rem" }} disabled={deleteLoading} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {order.customer?.notes?.trim() ? (

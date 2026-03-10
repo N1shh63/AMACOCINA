@@ -216,6 +216,11 @@ async function cleanOrders({ olderThanDays = 30, deleteEntregado = true } = {}) 
   return { deleted: result.rowCount || 0 };
 }
 
+async function deleteOrderById(id) {
+  const result = await pool.query("DELETE FROM orders WHERE id = $1", [String(id)]);
+  return (result.rowCount || 0) > 0;
+}
+
 module.exports = {
   createOrder,
   getOrderById,
@@ -223,4 +228,5 @@ module.exports = {
   listOrders,
   updateOrderStatus,
   cleanOrders,
+  deleteOrderById,
 };

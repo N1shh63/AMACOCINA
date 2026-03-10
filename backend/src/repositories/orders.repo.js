@@ -250,6 +250,14 @@ if (usePg) {
     return { deleted: ids.length };
   }
 
+  function deleteOrderByIdSync(id) {
+    const db = getDb();
+    const idStr = String(id);
+    db.prepare("DELETE FROM order_items WHERE order_id = ?").run(idStr);
+    const info = db.prepare("DELETE FROM orders WHERE id = ?").run(idStr);
+    return info.changes > 0;
+  }
+
   module.exports = {
     createOrder: (...args) => Promise.resolve(createOrderSync(...args)),
     getOrderById: (...args) => Promise.resolve(getOrderByIdSync(...args)),
@@ -258,5 +266,6 @@ if (usePg) {
       Promise.resolve(setMercadoPagoPreferenceSync(...args)),
     updateOrderStatus: (...args) => Promise.resolve(updateOrderStatusSync(...args)),
     cleanOrders: (...args) => Promise.resolve(cleanOrdersSync(...args)),
+    deleteOrderById: (...args) => Promise.resolve(deleteOrderByIdSync(...args)),
   };
 }

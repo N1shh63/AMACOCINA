@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { createOrder, getOrderById, listOrders, updateOrderStatus, cleanOrders } = require("../repositories/orders.repo");
+const { createOrder, getOrderById, listOrders, updateOrderStatus, cleanOrders, deleteOrderById } = require("../repositories/orders.repo");
 
 const ALLOWED_ORDER_STATUS = ["nuevo", "en_preparacion", "enviado", "entregado"];
 const ALLOWED_PAYMENT_STATUS = ["pendiente", "pagado", "cancelado"];
@@ -146,6 +146,20 @@ async function cleanOrdersHandler(req, res, next) {
   }
 }
 
+async function deleteOrderHandler(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!id || String(id).trim() === "") {
+      return res.status(400).json({ error: "id is required" });
+    }
+    const deleted = await deleteOrderById(String(id));
+    if (!deleted) return res.status(404).json({ error: "Order not found" });
+    return res.status(200).json({ ok: true, deleted: id });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function patchOrderHandler(req, res, next) {
   try {
     const { id } = req.params;
@@ -195,5 +209,5 @@ async function patchOrderHandler(req, res, next) {
   }
 }
 
-module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler, cleanOrdersHandler };
+module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler, cleanOrdersHandler, deleteOrderHandler };
 
