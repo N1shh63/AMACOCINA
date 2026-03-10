@@ -67,7 +67,7 @@ async function postOrders(req, res, next) {
 
     const { customer, items, currency, payment_method } = req.body;
 
-    const order = createOrder({
+    const order = await createOrder({
       id: crypto.randomUUID(),
       customer: {
         name: customer.name.trim(),
@@ -99,7 +99,7 @@ async function getOrder(req, res, next) {
       return res.status(400).json({ error: "id is required" });
     }
 
-    const order = getOrderById(String(id));
+    const order = await getOrderById(String(id));
     if (!order) return res.status(404).json({ error: "Order not found" });
 
     return res.json(order);
@@ -115,7 +115,7 @@ async function listOrdersHandler(req, res, next) {
     const order_status = req.query.order_status;
     const payment_status = req.query.payment_status;
 
-    const result = listOrders({
+    const result = await listOrders({
       limit: limit != null ? limit : 100,
       offset: offset != null ? offset : 0,
       order_status: order_status != null ? order_status : undefined,
@@ -135,7 +135,7 @@ async function patchOrderHandler(req, res, next) {
       return res.status(400).json({ error: "id is required" });
     }
 
-    const existing = getOrderById(String(id));
+    const existing = await getOrderById(String(id));
     if (!existing) return res.status(404).json({ error: "Order not found" });
 
     const order_status = req.body?.order_status;
@@ -163,14 +163,14 @@ async function patchOrderHandler(req, res, next) {
       return res.status(400).json({ error: "Se requiere order_status y/o payment_status" });
     }
 
-    const updated = updateOrderStatus(String(id), {
+    const updated = await updateOrderStatus(String(id), {
       orderStatus: newOrderStatus,
       paymentStatus: newPaymentStatus,
     });
 
     if (!updated) return res.status(404).json({ error: "Order not found" });
 
-    const order = getOrderById(String(id));
+    const order = await getOrderById(String(id));
     return res.json(order);
   } catch (err) {
     return next(err);

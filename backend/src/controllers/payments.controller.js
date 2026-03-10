@@ -54,7 +54,7 @@ async function createPreference(req, res) {
     let resolvedOrder = null;
 
     if (orderId) {
-      resolvedOrder = getOrderById(String(orderId));
+      resolvedOrder = await getOrderById(String(orderId));
       if (!resolvedOrder) {
         console.error(`[MP][${requestId}] orderId no encontrado:`, orderId);
         return res.status(400).json({ error: "orderId inválido", requestId });
@@ -149,7 +149,7 @@ async function createPreference(req, res) {
 
     if (resolvedOrder?.id && result?.id) {
       try {
-        const ok = setMercadoPagoPreference({
+        const ok = await setMercadoPagoPreference({
           orderId: resolvedOrder.id,
           preferenceId: result.id,
           externalReference: resolvedOrder.id,
