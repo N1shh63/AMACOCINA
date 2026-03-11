@@ -831,19 +831,57 @@ img {
   );
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
   min-height: 100%;
   box-shadow: var(--shadow-card), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.pCardImageWrap {
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.pCardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  vertical-align: middle;
+}
+
+.pCardImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%);
+}
+
+.pCardImagePlaceholderIcon {
+  font-size: 2.25rem;
+  opacity: 0.45;
+  line-height: 1;
+}
+
+.pCardContent {
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 .pCardHead {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pCardTitle {
@@ -1537,7 +1575,15 @@ img {
 
   .pCard {
     border-radius: 18px;
-    padding: 14px;
+  }
+
+  .pCardContent {
+    padding: 12px 14px 16px;
+    gap: 10px;
+  }
+
+  .pCardImagePlaceholderIcon {
+    font-size: 1.9rem;
   }
 
   .pCardTitle {
@@ -1729,6 +1775,10 @@ img {
   .cardPro,
   .card {
     border-radius: 16px;
+  }
+
+  .pCardContent {
+    padding: 11px 12px 14px;
   }
 
   .pCardTitle {

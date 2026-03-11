@@ -1,0 +1,3 @@
+# Colocar aquí las fotos de productos, nombradas por id del producto.
+# Ejemplo: sandwich-milanesa.jpg, hamburguesa-completa.jpg
+# La card intenta cargar /products/{id}.jpg automáticamente.

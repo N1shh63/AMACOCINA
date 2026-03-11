@@ -12,6 +12,8 @@ export const sides = [
   "Puré de calabaza",
 ]
 
+// Cada producto puede tener imagen opcional (string: path o URL).
+// Si no tiene "image", la card intenta cargar /products/{id}.jpg y usa placeholder si falla.
 export const products = [
   // PLATOS PRINCIPALES
   {
