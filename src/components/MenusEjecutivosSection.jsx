@@ -33,9 +33,6 @@ export default function MenusEjecutivosSection() {
         <p className="menusEjecutivosSubtitle">
           Almuerzos completos, rápidos y pensados para el mediodía.
         </p>
-        <p className="menusEjecutivosSchedule" aria-label="Horario de disponibilidad">
-          Disponible de 12:00 a 16:00
-        </p>
       </header>
 
       <div className="menusEjecutivosGrid">
