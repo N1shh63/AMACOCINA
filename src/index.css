@@ -1497,6 +1497,24 @@ img {
     min-width: 0;
   }
 
+  .searchInput {
+    font-size: 16px;
+    min-height: 44px;
+    height: 44px;
+    max-height: 44px;
+    padding: 10px 36px 10px 14px;
+    line-height: 1.25;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 12px;
+    touch-action: manipulation;
+  }
+
+  .searchInput:focus {
+    border-color: rgba(230, 126, 34, 0.5);
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.12);
+  }
+
   .categoryHeader {
     flex-wrap: wrap;
   }
@@ -1606,6 +1624,17 @@ img {
     padding: 10px 36px 10px 14px;
     font-size: 16px;
     min-height: 44px;
+    height: 44px;
+    max-height: 44px;
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 1.25;
+    touch-action: manipulation;
+  }
+
+  .searchInput:focus {
+    border-color: rgba(230, 126, 34, 0.5);
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.12);
   }
 
   .categoryBlock {
