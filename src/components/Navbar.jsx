@@ -5,6 +5,7 @@ export default function Navbar() {
   const { totalItems } = useCart()
   const location = useLocation()
   const isCart = location.pathname === "/cart"
+  const isAdmin = location.pathname.startsWith("/admin")
 
   return (
     <>
@@ -19,10 +20,13 @@ export default function Navbar() {
           </Link>
 
           <nav className="navLinks">
-            <Link to="/" className={`navLink ${!isCart ? "active" : ""}`}>
-              Menú
-            </Link>
+            {!isAdmin && (
+              <Link to="/" className={`navLink ${!isCart ? "active" : ""}`}>
+                Menú
+              </Link>
+            )}
 
+            {!isAdmin && (
             <Link to="/cart" className={`navCartBtn ${isCart ? "active" : ""}`}>
               <span className="navCartIcon">🛒</span>
               <span className="navCartText">Carrito</span>
@@ -33,14 +37,15 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+            )}
 
             <Link
-              to="/admin/login"
+              to={isAdmin ? "/admin/orders" : "/admin/login"}
               className="navLink"
               style={{ fontSize: "12px", opacity: 0.82 }}
               aria-label="Panel admin"
             >
-              Admin
+              {isAdmin ? "Dashboard" : "Admin"}
             </Link>
           </nav>
         </div>
@@ -49,8 +54,8 @@ export default function Navbar() {
       {/* Spacer para que el contenido no quede debajo de la navbar sticky */}
       <div className="navSpacer" />
 
-      {/* CTA móvil: barra inferior (solo si hay items) */}
-      {totalItems > 0 && !isCart && (
+      {/* CTA móvil: barra inferior (solo si hay items, no en admin) */}
+      {!isAdmin && totalItems > 0 && !isCart && (
         <div className="mobileCta">
           <Link to="/cart" className="mobileCtaBtn">
             <span>Ver carrito</span>

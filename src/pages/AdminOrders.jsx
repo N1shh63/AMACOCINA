@@ -177,6 +177,7 @@ export default function AdminOrders() {
 function filterOrdersByView(orders, viewMode) {
   if (!orders || orders.length === 0) return [];
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   if (viewMode === "hoy") {
     return orders.filter((o) => getDateKey(o.createdAt) === todayKey);
@@ -186,7 +187,65 @@ function filterOrdersByView(orders, viewMode) {
     weekAgo.setDate(weekAgo.getDate() - 7);
     return orders.filter((o) => new Date(o.createdAt) >= weekAgo);
   }
+  if (viewMode === "mes") {
+    const monthAgo = new Date(today);
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    return orders.filter((o) => new Date(o.createdAt) >= monthAgo);
+  }
   return orders;
+}
+
+function filterOrdersByStatus(orders, statusFilter) {
+  if (!orders || orders.length === 0) return [];
+  if (statusFilter === "todos") return orders;
+  return orders.filter((o) => (o.orderStatus || "").toLowerCase() === statusFilter);
+}
+
+function computeTodayStats(orders) {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayOrders = (orders || []).filter((o) => getDateKey(o.createdAt) === todayKey);
+  return computeGlobalStats(todayOrders);
+}
+
+function computeSalesByDay(orders, limit = 7) {
+  if (!orders || orders.length === 0) return [];
+  const byDay = {};
+  orders.forEach((o) => {
+    const k = getDateKey(o.createdAt) || "sin-fecha";
+    if (!byDay[k]) byDay[k] = { dateKey: k, total: 0, count: 0 };
+    byDay[k].total += Number(o.total || 0);
+    byDay[k].count += 1;
+  });
+  return Object.values(byDay)
+    .sort((a, b) => (b.dateKey > a.dateKey ? 1 : -1))
+    .slice(0, limit);
+}
+
+function computeOrdersByHour(orders) {
+  if (!orders || orders.length === 0) return [];
+  const byHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+  orders.forEach((o) => {
+    try {
+      const h = new Date(o.createdAt).getHours();
+      if (h >= 0 && h < 24) byHour[h].count += 1;
+    } catch (_) {}
+  });
+  return byHour.filter((x) => x.count > 0).sort((a, b) => b.count - a.count);
+}
+
+function buildOrderCopyText(order) {
+  const lines = [
+    `Pedido #${order.id}`,
+    `Cliente: ${order.customer?.name || "—"}`,
+    `Total: $${order.total ?? "—"}`,
+    `Pago: ${paymentMethodLabel(order.paymentMethod)}`,
+    ``,
+    `Detalle:`,
+    ...(order.items || []).map((it) => `• ${it.qty}x ${it.name} — $${it.total ?? ""}`),
+  ];
+  if (order.customer?.notes?.trim()) lines.push(``, `Notas: ${order.customer.notes.trim()}`);
+  return lines.join("\n");
 }
 
 function AdminOrdersContent() {
@@ -197,7 +256,9 @@ function AdminOrdersContent() {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatingId, setUpdatingId] = useState(null);
-  const [viewMode, setViewMode] = useState("calendario");
+  const [viewMode, setViewMode] = useState("hoy");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [expandedItems, setExpandedItems] = useState(() => new Set());
   const [cleanLoading, setCleanLoading] = useState(false);
   const [cleanConfirm, setCleanConfirm] = useState(false);
   const [cleanOlderDays, setCleanOlderDays] = useState(30);
@@ -212,10 +273,48 @@ function AdminOrdersContent() {
     navigate("/admin/login", { replace: true });
   }, [navigate]);
 
-  const filteredOrders = useMemo(
+  const timeFilteredOrders = useMemo(
     () => filterOrdersByView(orders, viewMode),
     [orders, viewMode]
   );
+
+  const filteredOrders = useMemo(
+    () => filterOrdersByStatus(timeFilteredOrders, statusFilter),
+    [timeFilteredOrders, statusFilter]
+  );
+
+  const todayStats = useMemo(() => computeTodayStats(orders), [orders]);
+  const salesByDay = useMemo(() => computeSalesByDay(orders, 7), [orders]);
+  const ordersByHour = useMemo(() => computeOrdersByHour(orders), [orders]);
+  const topProductsList = useMemo(() => {
+    const global = computeGlobalStats(orders);
+    if (!global.topProduct) return [];
+    const byProduct = {};
+    (orders || []).forEach((o) => {
+      (o.items || []).forEach((it) => {
+        const key = it.name || it.id || "—";
+        byProduct[key] = (byProduct[key] || 0) + Number(it.qty || 0);
+      });
+    });
+    return Object.entries(byProduct)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, qty }));
+  }, [orders]);
+
+  const toggleExpanded = useCallback((orderId) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  }, []);
+
+  const handleCopyOrder = useCallback((order) => {
+    const text = buildOrderCopyText(order);
+    navigator.clipboard?.writeText(text).then(() => {}).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,28 +349,20 @@ function AdminOrdersContent() {
 
   if (loading) {
     return (
-      <section className="container">
-        <div className="card" style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center", padding: "2rem" }}>
-          <p className="muted">Cargando pedidos...</p>
-        </div>
-      </section>
+      <div className="adminDashboard">
+        <div className="adminLoading">Cargando pedidos...</div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <section className="container">
-        <div className="card" style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center", padding: "2rem" }}>
-          <p style={{ color: "rgba(255, 120, 120, 0.9)", marginBottom: "1rem" }}>{error}</p>
-          <button
-            type="button"
-            className="btn btnPrimary"
-            onClick={() => window.location.reload()}
-          >
-            Reintentar
-          </button>
+      <div className="adminDashboard">
+        <div className="adminError">
+          <p>{error}</p>
+          <button type="button" className="btn btnPrimary" onClick={() => window.location.reload()}>Reintentar</button>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -304,58 +395,159 @@ function AdminOrdersContent() {
   };
 
   return (
-    <section className="container">
-      <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-        <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: 800 }}>Pedidos</h1>
-        <span className="muted" style={{ fontSize: "0.9rem" }}>
-          {total} pedido{total !== 1 ? "s" : ""} (sin borradores)
-        </span>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {["hoy", "semana", "calendario"].map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className={viewMode === mode ? "btn btnPrimary" : "btn btnGhost"}
-              style={{ fontSize: "0.85rem", padding: "8px 12px" }}
-              onClick={() => setViewMode(mode)}
-            >
-              {mode === "hoy" ? "Hoy" : mode === "semana" ? "Semana" : "Calendario"}
-            </button>
-          ))}
+    <div className="adminDashboard">
+      <header className="adminHeader">
+        <h1 className="adminTitle">Dashboard</h1>
+        <p className="adminSubtitle">Pedidos y ventas</p>
+        <div className="adminHeaderActions">
+          <Link to="/" className="adminLinkBack">← Menú</Link>
+          <button
+            type="button"
+            className="btn btnSecondary adminBtnClean"
+            onClick={() => setCleanConfirm(true)}
+            disabled={cleanLoading}
+          >
+            Limpiar pedidos
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn btnSecondary"
-          style={{ fontSize: "0.85rem" }}
-          onClick={() => setCleanConfirm(true)}
-          disabled={cleanLoading}
-        >
-          Limpiar pedidos
-        </button>
-        <Link to="/" className="btn btnGhost" style={{ marginLeft: "auto" }}>
-          ← Menú
-        </Link>
-      </div>
+      </header>
+
+      {/* 1. KPI */}
+      <section className="adminSection">
+        <h2 className="adminSectionTitle">KPI principales</h2>
+        <div className="adminKpiGrid">
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Pedidos hoy</span>
+            <span className="adminKpiValue">{todayStats.totalOrders}</span>
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Ventas hoy</span>
+            <span className="adminKpiValue">${todayStats.totalAmount?.toLocaleString("es-AR") ?? 0}</span>
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Ticket promedio</span>
+            <span className="adminKpiValue">${todayStats.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Más vendido</span>
+            <span className="adminKpiValue adminKpiValueSmall">{todayStats.topProduct?.name ?? "—"}</span>
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Pago más usado</span>
+            <span className="adminKpiValue adminKpiValueSmall">{paymentMethodLabel(todayStats.topPaymentMethod?.method) ?? "—"}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Analytics */}
+      <section className="adminSection">
+        <h2 className="adminSectionTitle">Analytics rápidas</h2>
+        <div className="adminAnalyticsGrid">
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Ventas por día</h3>
+            <ul className="adminAnalyticsList">
+              {salesByDay.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                salesByDay.map((d) => (
+                  <li key={d.dateKey}>
+                    <span>{getDayLabel(d.dateKey, `${d.dateKey}T12:00:00`)}</span>
+                    <span>${d.total?.toLocaleString("es-AR")} ({d.count})</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Pedidos por hora</h3>
+            <ul className="adminAnalyticsList">
+              {ordersByHour.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                ordersByHour.slice(0, 5).map((x) => (
+                  <li key={x.hour}>
+                    <span>{String(x.hour).padStart(2, "0")}:00</span>
+                    <span>{x.count} pedido{x.count !== 1 ? "s" : ""}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Top productos</h3>
+            <ol className="adminAnalyticsList adminAnalyticsListOl">
+              {topProductsList.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                topProductsList.map((p, i) => (
+                  <li key={p.name}>
+                    <span>{i + 1}. {p.name}</span>
+                    <span>{p.qty}</span>
+                  </li>
+                ))
+              )}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Filtros + Lista de pedidos */}
+      <section className="adminSection">
+        <div className="adminFiltersRow">
+          <h2 className="adminSectionTitle">Pedidos operativos</h2>
+          <div className="adminFilters">
+            <div className="adminFilterGroup">
+              <span className="adminFilterLabel">Período</span>
+              <div className="adminFilterChips">
+                {["hoy", "semana", "mes", "calendario"].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`adminChip ${viewMode === mode ? "adminChipActive" : ""}`}
+                    onClick={() => setViewMode(mode)}
+                  >
+                    {mode === "hoy" ? "Hoy" : mode === "semana" ? "Semana" : mode === "mes" ? "Mes" : "Calendario"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="adminFilterGroup">
+              <span className="adminFilterLabel">Estado</span>
+              <div className="adminFilterChips">
+                {["todos", "en_preparacion", "enviado", "entregado"].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`adminChip ${statusFilter === s ? "adminChipActive" : ""}`}
+                    onClick={() => setStatusFilter(s)}
+                  >
+                    {s === "todos" ? "Todos" : orderStatusLabel(s)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {cleanConfirm && (
-        <div className="card" style={{ marginBottom: "1rem", padding: "1rem 1.25rem", maxWidth: "420px" }}>
-          <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Limpiar pedidos</div>
-          <p style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.8)", marginBottom: "0.75rem" }}>
+        <div className="adminModalCard">
+          <div className="adminModalTitle">Limpiar pedidos</div>
+          <p className="adminModalText">
             Se eliminarán pedidos entregados y pedidos más antiguos que los días indicados.
           </p>
-          <div style={{ marginBottom: "0.75rem" }}>
-            <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>Más antiguos que (días)</label>
+          <div className="adminModalField">
+            <label className="adminModalLabel">Más antiguos que (días)</label>
             <input
               type="number"
               min={1}
               max={365}
               value={cleanOlderDays}
               onChange={(e) => setCleanOlderDays(Number(e.target.value) || 30)}
-              className="input"
-              style={{ width: "80px", padding: "8px" }}
+              className="adminModalInput"
             />
           </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <div className="adminModalActions">
             <button type="button" className="btn btnPrimary" onClick={handleCleanOrders} disabled={cleanLoading}>
               {cleanLoading ? "Eliminando..." : "Eliminar"}
             </button>
@@ -367,265 +559,114 @@ function AdminOrdersContent() {
       )}
 
       {filteredOrders.length === 0 ? (
-        <div className="card" style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center", padding: "2rem" }}>
-          <p className="muted">
-            {orders.length === 0 ? "No hay pedidos todavía." : "No hay pedidos en esta vista (Hoy / Semana / Calendario)."}
-          </p>
+        <div className="adminEmpty">
+          {orders.length === 0 ? "No hay pedidos todavía." : "No hay pedidos con los filtros seleccionados."}
         </div>
       ) : (
-        (() => {
-          const byDate = {};
-          (filteredOrders || []).forEach((o) => {
-            const k = getDateKey(o.createdAt) || "sin-fecha";
-            if (!byDate[k]) byDate[k] = [];
-            byDate[k].push(o);
-          });
-          const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
-          const global = computeGlobalStats(filteredOrders);
-          return (
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              <div
-                className="card"
-                style={{
-                  padding: "1rem 1.25rem",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "12px",
-                  background: "rgba(255,255,255,0.04)",
-                }}
-              >
-                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "rgba(255,255,255,0.6)", marginBottom: "0.5rem" }}>
-                  Resumen general
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem 1.5rem", fontSize: "0.85rem" }}>
-                  <span>Pedidos: <strong>{global.totalOrders}</strong></span>
-                  <span>Total: <strong>${global.totalAmount}</strong></span>
-                  <span>Ticket prom.: <strong>${global.avgTicket}</strong></span>
-                  {global.topCustomerByOrders && (
-                    <span>Más pedidos: <strong>{global.topCustomerByOrders.name}</strong> ({global.topCustomerByOrders.count})</span>
-                  )}
-                  {global.topCustomerByAmount && (
-                    <span>Mayor monto: <strong>{global.topCustomerByAmount.name}</strong> (${global.topCustomerByAmount.amount})</span>
-                  )}
-                  {global.topProduct && (
-                    <span>Más vendido: <strong>{global.topProduct.name}</strong> ({global.topProduct.qty})</span>
-                  )}
-                  {global.topPaymentMethod && (
-                    <span>Pago más usado: <strong>{paymentMethodLabel(global.topPaymentMethod.method)}</strong></span>
-                  )}
-                </div>
-              </div>
-              {dateKeys.map((dateKey) => {
-                const dayOrders = byDate[dateKey] || [];
-                const dayStats = computeDayStats(dayOrders);
-                return (
-                <div key={dateKey}>
-                  <div
-                    style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 700,
-                      color: "rgba(255,255,255,0.6)",
-                      marginBottom: "0.5rem",
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {getDayLabel(dateKey, dayOrders[0]?.createdAt)}
-                  </div>
-                  {dayStats.count > 0 && (
-                    <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginBottom: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.5rem 1rem" }}>
-                      <span>{dayStats.count} pedido{dayStats.count !== 1 ? "s" : ""}</span>
-                      <span>Total: ${dayStats.totalAmount}</span>
-                      <span>Ticket prom.: ${dayStats.avgTicket}</span>
-                      {dayStats.topCustomer && <span>Más pedidos: {dayStats.topCustomer.name}</span>}
-                      {dayStats.topProduct && <span>Más pedido: {dayStats.topProduct.name}</span>}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    {byDate[dateKey].map((order) => (
+        <div className="adminOrderList">
+          {(() => {
+            const byDate = {};
+            (filteredOrders || []).forEach((o) => {
+              const k = getDateKey(o.createdAt) || "sin-fecha";
+              if (!byDate[k]) byDate[k] = [];
+              byDate[k].push(o);
+            });
+            const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
+            return dateKeys.map((dateKey) => (
+              <div key={dateKey} className="adminDayBlock">
+                <div className="adminDayLabel">{getDayLabel(dateKey, byDate[dateKey][0]?.createdAt)}</div>
+                <div className="adminDayOrders">
+                  {(byDate[dateKey] || []).map((order) => {
+                    const isNew = (order.orderStatus || "").toLowerCase() === "nuevo";
+                    const statusSlug = (order.orderStatus || "").toLowerCase();
+                    const expanded = expandedItems.has(order.id);
+                    return (
                       <div
                         key={order.id}
-                        className="card"
-                        style={{
-                          padding: "1rem 1.25rem",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          borderRadius: "12px",
-                          background: "rgba(255,255,255,0.03)",
-                        }}
+                        className={`adminOrderCard ${isNew ? "adminOrderCardNew" : ""}`}
                       >
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: "0.5rem 1rem",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                            alignItems: "start",
-                          }}
+                        <div className="adminOrderCardHeader">
+                          {isNew && <span className="adminBadgeNew">Nuevo pedido</span>}
+                          <div className="adminOrderCardMeta">
+                            <span className="adminOrderTime">{formatTime(order.createdAt)}</span>
+                            <span className="adminOrderClient">{order.customer?.name || "—"}</span>
+                            <span className="adminOrderTotal">${order.total ?? "—"}</span>
+                            <span className="adminOrderPayment">{paymentMethodLabel(order.paymentMethod)}</span>
+                            <span className={`adminStatusPill adminStatusPill--${statusSlug === "en_preparacion" ? "prep" : statusSlug === "enviado" ? "enviado" : statusSlug === "entregado" ? "entregado" : "nuevo"}`}>
+                              {orderStatusLabel(order.orderStatus)}
+                            </span>
+                            <span className="adminStatusPill adminStatusPill--pay">{paymentStatusLabel(order.paymentStatus)}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="adminOrderItemsToggle"
+                          onClick={() => toggleExpanded(order.id)}
+                          aria-expanded={expanded}
                         >
-                          <div>
-                            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                              Hora
+                          Items: {(order.items || []).length} — {expanded ? "Ocultar" : "Ver detalle"}
+                        </button>
+                        {expanded && (
+                          <ul className="adminOrderItems">
+                            {(order.items || []).map((it) => (
+                              <li key={it.id}>{it.qty}x {it.name} — ${it.total}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {order.customer?.notes?.trim() && expanded && (
+                          <div className="adminOrderNotes">Notas: {order.customer.notes.trim()}</div>
+                        )}
+                        <div className="adminOrderActions">
+                          {order.paymentStatus !== "pagado" && (
+                            <button type="button" className="btn btnSecondary adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { payment_status: "pagado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Confirmar pago
+                            </button>
+                          )}
+                          {order.orderStatus !== "en_preparacion" && (
+                            <button type="button" className="btn btnGhost adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "en_preparacion" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              En preparación
+                            </button>
+                          )}
+                          {order.orderStatus !== "enviado" && (
+                            <button type="button" className="btn btnGhost adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "enviado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Enviado
+                            </button>
+                          )}
+                          {order.orderStatus !== "entregado" && (
+                            <button type="button" className="btn btnPrimary adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "entregado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Entregado
+                            </button>
+                          )}
+                          <button type="button" className="btn btnGhost adminOrderBtn" onClick={() => handleCopyOrder(order)}>
+                            Copiar pedido
+                          </button>
+                          <button type="button" className="btn btnGhost adminOrderBtn adminOrderBtnDanger" disabled={updatingId === order.id || deleteLoading}
+                            onClick={() => setDeleteConfirmId(deleteConfirmId === order.id ? null : order.id)}>
+                            Borrar
+                          </button>
+                        </div>
+                        {deleteConfirmId === order.id && (
+                          <div className="adminDeleteConfirm">
+                            <p>¿Borrar pedido #{order.id}? No se puede deshacer.</p>
+                            <div className="adminDeleteConfirmActions">
+                              <button type="button" className="btn btnPrimary adminBtnDanger" disabled={deleteLoading} onClick={() => handleDeleteOrder(order.id)}>{deleteLoading ? "Borrando..." : "Sí, borrar"}</button>
+                              <button type="button" className="btn btnGhost" disabled={deleteLoading} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
                             </div>
-                            <div style={{ fontSize: "1rem", fontWeight: 700 }}>{formatTime(order.createdAt)}</div>
                           </div>
-                          <div>
-                            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                              Cliente
-                            </div>
-                            <div style={{ fontWeight: 600 }}>{order.customer?.name || "—"}</div>
-                          </div>
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Total
-                  </div>
-                  <div style={{ fontWeight: 600 }}>${order.total ?? "—"}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Método de pago
-                  </div>
-                  <div>{paymentMethodLabel(order.paymentMethod)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Estado pago
-                  </div>
-                  <div>{paymentStatusLabel(order.paymentStatus)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "2px" }}>
-                    Estado pedido
-                  </div>
-                  <div>{orderStatusLabel(order.orderStatus)}</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "6px" }}>
-                  Acciones
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  {order.paymentStatus !== "pagado" && (
-                    <button
-                      type="button"
-                      className="btn btnSecondary"
-                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
-                      disabled={updatingId === order.id}
-                      onClick={() => {
-                        setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { payment_status: "pagado" }, getAdminToken())
-                          .then(() => refresh())
-                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
-                          .finally(() => setUpdatingId(null));
-                      }}
-                    >
-                      Confirmar pago
-                    </button>
-                  )}
-                  {order.orderStatus !== "en_preparacion" && (
-                    <button
-                      type="button"
-                      className="btn btnGhost"
-                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
-                      disabled={updatingId === order.id}
-                      onClick={() => {
-                        setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "en_preparacion" }, getAdminToken())
-                          .then(() => refresh())
-                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
-                          .finally(() => setUpdatingId(null));
-                      }}
-                    >
-                      En preparación
-                    </button>
-                  )}
-                  {order.orderStatus !== "enviado" && (
-                    <button
-                      type="button"
-                      className="btn btnGhost"
-                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
-                      disabled={updatingId === order.id}
-                      onClick={() => {
-                        setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "enviado" }, getAdminToken())
-                          .then(() => refresh())
-                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
-                          .finally(() => setUpdatingId(null));
-                      }}
-                    >
-                      Enviado
-                    </button>
-                  )}
-                  {order.orderStatus !== "entregado" && (
-                    <button
-                      type="button"
-                      className="btn btnPrimary"
-                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem" }}
-                      disabled={updatingId === order.id}
-                      onClick={() => {
-                        setUpdatingId(order.id);
-                        updateOrderStatus(order.id, { order_status: "entregado" }, getAdminToken())
-                          .then(() => refresh())
-                          .catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); })
-                          .finally(() => setUpdatingId(null));
-                      }}
-                    >
-                      Entregado
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btnGhost"
-                    style={{ fontSize: "0.8rem", padding: "0.35rem 0.6rem", color: "rgba(255, 120, 120, 0.9)" }}
-                    disabled={updatingId === order.id || deleteLoading}
-                    onClick={() => setDeleteConfirmId(deleteConfirmId === order.id ? null : order.id)}
-                  >
-                    Borrar
-                  </button>
-                </div>
-                {deleteConfirmId === order.id && (
-                  <div style={{ marginTop: "0.5rem", padding: "0.5rem", background: "rgba(0,0,0,0.2)", borderRadius: "8px", fontSize: "0.85rem" }}>
-                    <div style={{ marginBottom: "0.5rem" }}>¿Borrar pedido #{order.id}? Esta acción no se puede deshacer.</div>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button type="button" className="btn btnPrimary" style={{ fontSize: "0.8rem", background: "rgba(255,80,80,0.8)" }} disabled={deleteLoading} onClick={() => handleDeleteOrder(order.id)}>
-                        {deleteLoading ? "Borrando..." : "Sí, borrar"}
-                      </button>
-                      <button type="button" className="btn btnGhost" style={{ fontSize: "0.8rem" }} disabled={deleteLoading} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {order.customer?.notes?.trim() ? (
-                <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>
-                    Notas del cliente
-                  </div>
-                  <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.85)" }}>
-                    {order.customer.notes.trim()}
-                  </div>
-                </div>
-              ) : null}
-
-              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: "6px" }}>
-                  Detalle
-                </div>
-                <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9rem", color: "rgba(255,255,255,0.85)" }}>
-                  {(order.items || []).map((it) => (
-                    <li key={it.id}>
-                      {it.qty}x {it.name} — ${it.total}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-                  </div>
-                </div>
-              );
-              })}
-            </div>
-          );
-        })()
+            ));
+          })()}
+        </div>
       )}
-    </section>
+    </div>
   );
 }

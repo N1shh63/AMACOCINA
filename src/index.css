@@ -1966,3 +1966,536 @@ img {
     max-width: 84px;
   }
 }
+
+/* ===== Admin Dashboard ===== */
+.adminDashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 32px;
+  min-height: 100vh;
+}
+
+.adminHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.adminTitle {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.adminSubtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+  width: 100%;
+}
+
+.adminHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.adminLinkBack {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.adminLinkBack:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.adminBtnClean {
+  font-size: 0.85rem;
+}
+
+.adminSection {
+  margin-bottom: 28px;
+}
+
+.adminSectionTitle {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.adminKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.adminKpiCard {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminKpiLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.adminKpiValue {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.adminKpiValueSmall {
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminAnalyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.adminAnalyticsCard {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.adminAnalyticsCardTitle {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.adminAnalyticsList,
+.adminAnalyticsListOl {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.adminAnalyticsListOl {
+  list-style: decimal;
+  padding-left: 1.2rem;
+}
+
+.adminAnalyticsList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.adminAnalyticsList li:last-child {
+  border-bottom: none;
+}
+
+.adminAnalyticsEmpty {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.adminFiltersRow {
+  margin-bottom: 16px;
+}
+
+.adminFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-top: 12px;
+}
+
+.adminFilterGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.adminFilterLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.adminFilterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.adminChip {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.adminChip:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.adminChipActive {
+  border-color: rgba(230, 126, 34, 0.5);
+  background: rgba(230, 126, 34, 0.15);
+  color: #ffdcc4;
+}
+
+.adminModalCard {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  max-width: 420px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.adminModalTitle {
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.adminModalText {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 12px;
+}
+
+.adminModalField {
+  margin-bottom: 12px;
+}
+
+.adminModalLabel {
+  font-size: 0.8rem;
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.adminModalInput {
+  width: 80px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.adminModalActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminEmpty {
+  text-align: center;
+  padding: 48px 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+}
+
+.adminLoading,
+.adminError {
+  text-align: center;
+  padding: 48px 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.adminError p {
+  margin: 0 0 16px;
+  color: rgba(255, 180, 180, 0.95);
+}
+
+.adminOrderList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.adminDayBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adminDayLabel {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: capitalize;
+}
+
+.adminDayOrders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adminOrderCard {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.adminOrderCardNew {
+  border-color: rgba(230, 126, 34, 0.4);
+  box-shadow: 0 0 0 1px rgba(230, 126, 34, 0.15);
+}
+
+.adminBadgeNew {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(230, 126, 34, 0.25);
+  color: #ffdcc4;
+  margin-bottom: 8px;
+}
+
+.adminOrderCardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.adminOrderCardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.adminOrderTime {
+  font-weight: 800;
+  color: #fff;
+}
+
+.adminOrderClient {
+  font-weight: 700;
+}
+
+.adminOrderTotal {
+  font-weight: 800;
+  color: #ffdcc4;
+}
+
+.adminOrderPayment {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.adminStatusPill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.adminStatusPill--nuevo {
+  background: rgba(230, 126, 34, 0.2);
+  border: 1px solid rgba(230, 126, 34, 0.4);
+  color: #ffdcc4;
+}
+
+.adminStatusPill--prep {
+  background: rgba(230, 126, 34, 0.2);
+  border: 1px solid rgba(230, 126, 34, 0.35);
+  color: #ffdcc4;
+}
+
+.adminStatusPill--enviado {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.adminStatusPill--entregado {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+
+.adminStatusPill--pay {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.adminOrderItemsToggle {
+  margin-top: 10px;
+  padding: 6px 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.adminOrderItemsToggle:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.adminOrderItems {
+  margin: 8px 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.adminOrderNotes {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.adminOrderActions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adminOrderBtn {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+.adminOrderBtnDanger {
+  color: rgba(255, 150, 150, 0.95);
+}
+
+.adminOrderBtnDanger:hover {
+  color: rgba(255, 200, 200, 0.95);
+}
+
+.adminDeleteConfirm {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.9rem;
+}
+
+.adminDeleteConfirm p {
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.adminDeleteConfirmActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminBtnDanger {
+  background: rgba(220, 80, 80, 0.8);
+  border-color: rgba(220, 80, 80, 0.9);
+}
+
+.adminBtnDanger:hover {
+  background: rgba(240, 100, 100, 0.9);
+}
+
+@media (max-width: 768px) {
+  .adminDashboard {
+    padding: 16px 14px 24px;
+  }
+
+  .adminKpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminAnalyticsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminOrderCardMeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .adminDashboard {
+    padding: 14px 12px 20px;
+  }
+
+  .adminHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .adminHeaderActions {
+    margin-left: 0;
+  }
+
+  .adminKpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminKpiValue {
+    font-size: 1.1rem;
+  }
+
+  .adminOrderActions {
+    flex-direction: column;
+  }
+
+  .adminOrderBtn {
+    width: 100%;
+  }
+}
