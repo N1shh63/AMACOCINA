@@ -1,6 +1,6 @@
 export const CATEGORIES = {
   platos: "Platos principales",
-  acompanar: "Para acompañar",
+  acompanar: "Guarniciones",
   ensaladas: "Ensaladas",
 }
 
@@ -75,6 +75,7 @@ const productsBase = [
     category: "platos",
     optionsLabel: "Sabor",
     options: ["Carne", "Pollo", "Jamón y queso", "Jamón y roquefort"],
+    recommended: true,
   },
   {
     id: "empanadas-grande",
@@ -84,6 +85,7 @@ const productsBase = [
     category: "platos",
     optionsLabel: "Sabor",
     options: ["Carne", "Pollo", "Jamón y queso", "Jamón y roquefort"],
+    recommended: true,
   },
 
   {

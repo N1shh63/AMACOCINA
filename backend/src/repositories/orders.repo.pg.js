@@ -221,6 +221,20 @@ async function deleteOrderById(id) {
   return (result.rowCount || 0) > 0;
 }
 
+async function getTopProductName() {
+  const result = await pool.query(
+    `SELECT oi.name
+     FROM order_items oi
+     INNER JOIN orders o ON o.id = oi.order_id
+     WHERE o.order_status != 'draft'
+     GROUP BY oi.name
+     ORDER BY SUM(oi.qty) DESC
+     LIMIT 1`
+  );
+  const row = result.rows[0];
+  return row ? { name: row.name } : null;
+}
+
 module.exports = {
   createOrder,
   getOrderById,
@@ -229,4 +243,5 @@ module.exports = {
   updateOrderStatus,
   cleanOrders,
   deleteOrderById,
+  getTopProductName,
 };

@@ -258,6 +258,22 @@ if (usePg) {
     return info.changes > 0;
   }
 
+  function getTopProductNameSync() {
+    const db = getDb();
+    const row = db
+      .prepare(
+        `SELECT oi.name
+         FROM order_items oi
+         INNER JOIN orders o ON o.id = oi.order_id
+         WHERE o.order_status != 'draft'
+         GROUP BY oi.name
+         ORDER BY SUM(oi.qty) DESC
+         LIMIT 1`
+      )
+      .get();
+    return row ? { name: row.name } : null;
+  }
+
   module.exports = {
     createOrder: (...args) => Promise.resolve(createOrderSync(...args)),
     getOrderById: (...args) => Promise.resolve(getOrderByIdSync(...args)),
@@ -267,5 +283,6 @@ if (usePg) {
     updateOrderStatus: (...args) => Promise.resolve(updateOrderStatusSync(...args)),
     cleanOrders: (...args) => Promise.resolve(cleanOrdersSync(...args)),
     deleteOrderById: (...args) => Promise.resolve(deleteOrderByIdSync(...args)),
+    getTopProductName: () => Promise.resolve(getTopProductNameSync()),
   };
 }

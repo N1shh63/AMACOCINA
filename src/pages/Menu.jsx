@@ -1,19 +1,33 @@
-import { useMemo, useRef, useState } from "react";
-import { products } from "../data/products";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { products, CATEGORIES } from "../data/products";
 import ProductCard from "../components/ProductCard";
 import MenusEjecutivosSection from "../components/MenusEjecutivosSection";
+import { getTopProduct } from "../services/orders";
 
 function formatCategoryTitle(cat) {
   if (!cat) return "";
-  return cat
-    .split(" ")
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
+  return CATEGORIES[cat] || cat.split(" ").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
 }
 
 export default function Menu() {
   const [query, setQuery] = useState("");
+  const [topProductName, setTopProductName] = useState(null);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    getTopProduct()
+      .then(({ topProductName: name }) => setTopProductName(name ?? null))
+      .catch(() => setTopProductName(null));
+  }, []);
+
+  const productIdForMostOrdered = useMemo(() => {
+    if (!topProductName || typeof topProductName !== "string" || !topProductName.trim()) return null;
+    const name = topProductName.trim();
+    const found = products.find(
+      (p) => p.name === name || name.startsWith(p.name + " (")
+    );
+    return found ? found.id : null;
+  }, [topProductName]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -142,7 +156,11 @@ export default function Menu() {
 
               <div className="productsGrid">
                 {byCategory[cat].map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    isMostOrdered={p.id === productIdForMostOrdered}
+                  />
                 ))}
               </div>
             </div>

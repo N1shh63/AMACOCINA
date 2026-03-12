@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const { createOrder, getOrderById, listOrders, updateOrderStatus, cleanOrders, deleteOrderById } = require("../repositories/orders.repo");
+const { createOrder, getOrderById, listOrders, updateOrderStatus, cleanOrders, deleteOrderById, getTopProductName } = require("../repositories/orders.repo");
 
 const ALLOWED_ORDER_STATUS = ["nuevo", "en_preparacion", "enviado", "entregado"];
 const ALLOWED_PAYMENT_STATUS = ["pendiente", "pagado", "cancelado"];
@@ -209,5 +209,14 @@ async function patchOrderHandler(req, res, next) {
   }
 }
 
-module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler, cleanOrdersHandler, deleteOrderHandler };
+async function getTopProductHandler(req, res, next) {
+  try {
+    const result = await getTopProductName();
+    return res.json(result ? { topProductName: result.name } : { topProductName: null });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { postOrders, getOrder, listOrdersHandler, patchOrderHandler, cleanOrdersHandler, deleteOrderHandler, getTopProductHandler };
 

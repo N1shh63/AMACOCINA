@@ -23,6 +23,13 @@ export async function createOrder({ customer, items, currency, payment_method })
   return data;
 }
 
+export async function getTopProduct() {
+  const res = await fetch(`${API_BASE}/orders/top-product`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { topProductName: null };
+  return { topProductName: data.topProductName ?? null };
+}
+
 export async function getOrderById(id) {
   const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}`);
   const data = await res.json().catch(() => ({}));

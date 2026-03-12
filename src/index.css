@@ -26,7 +26,7 @@
   --shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.26);
   --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.16);
 
-  --section-gap: clamp(18px, 2.2vw, 28px);
+  --section-gap: clamp(14px, 1.8vw, 22px);
   --content-pad: clamp(14px, 2vw, 22px);
 }
 
@@ -423,10 +423,10 @@ img {
 /* Hero */
 .hero {
   position: relative;
-  height: clamp(280px, 34vw, 380px);
+  height: clamp(220px, 28vw, 320px);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  margin-top: 12px;
+  margin-top: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.2);
   box-shadow: var(--shadow-soft), 0 0 0 1px rgba(0, 0, 0, 0.2) inset;
@@ -445,7 +445,7 @@ img {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 28px 24px;
+  padding: 20px 24px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.25) 45%, rgba(0, 0, 0, 0.55) 100%),
     linear-gradient(90deg, rgba(0, 0, 0, 0.2), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.15));
@@ -495,7 +495,7 @@ img {
 }
 
 .heroActions {
-  margin-top: 24px;
+  margin-top: 18px;
   display: inline-flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -527,14 +527,14 @@ img {
 .trust {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 4px;
+  gap: 14px;
+  margin-top: 2px;
 }
 
 .trustCard {
-  min-height: 120px;
+  min-height: 96px;
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 14px 16px;
   background: linear-gradient(
     165deg,
     rgba(255, 255, 255, 0.08) 0%,
@@ -546,16 +546,16 @@ img {
 
 .trustTitle {
   font-weight: 900;
-  font-size: 15px;
-  margin-bottom: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
   letter-spacing: -0.02em;
   color: rgba(255, 255, 255, 0.95);
 }
 
 .trustDesc {
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
-  line-height: 1.52;
+  line-height: 1.48;
 }
 
 /* Menús Ejecutivos – compacto */
@@ -711,7 +711,7 @@ img {
 .menuSection {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .menuTop {
@@ -876,6 +876,37 @@ img {
   font-size: 2.25rem;
   opacity: 0.45;
   line-height: 1;
+}
+
+.pCardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 6px;
+  min-height: 0;
+}
+
+.pCardBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.pCardBadgeMost {
+  background: rgba(230, 126, 34, 0.2);
+  border: 1px solid rgba(230, 126, 34, 0.4);
+  color: #ffdcc4;
+}
+
+.pCardBadgeRec {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .pCardContent {
@@ -1587,6 +1618,16 @@ img {
 
   .productsGrid {
     gap: 12px;
+  }
+
+  .pCardBadges {
+    padding: 0 10px 4px;
+    gap: 4px;
+  }
+
+  .pCardBadge {
+    font-size: 9px;
+    padding: 3px 6px;
   }
 
   .pCardContent {

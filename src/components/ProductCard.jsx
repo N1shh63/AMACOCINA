@@ -16,7 +16,7 @@ function getProductImageUrl(product) {
   return null;
 }
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, isMostOrdered = false }) {
   const { items, addItem, setQty } = useCart();
   const [imageError, setImageError] = useState(false);
 
@@ -74,6 +74,13 @@ export default function ProductCard({ product }) {
           </div>
         )}
       </div>
+
+      {(isMostOrdered || product.recommended) && (
+        <div className="pCardBadges">
+          {isMostOrdered && <span className="pCardBadge pCardBadgeMost">🔥 Más pedido</span>}
+          {product.recommended && <span className="pCardBadge pCardBadgeRec">⭐ Recomendado</span>}
+        </div>
+      )}
 
       <div className="pCardContent">
         <header className="pCardHead">
