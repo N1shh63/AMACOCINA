@@ -2077,10 +2077,93 @@ img {
   white-space: nowrap;
 }
 
+.adminKpiGridWide {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.adminKpiCardHighlight {
+  border-color: rgba(230, 126, 34, 0.2);
+  background: rgba(230, 126, 34, 0.06);
+}
+
+.adminKpiCardHighlight .adminKpiValue {
+  color: #ffdcc4;
+}
+
+.adminKpiDelta {
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.adminKpiDeltaUp {
+  color: rgba(34, 197, 94, 0.9);
+}
+
+.adminKpiDeltaDown {
+  color: rgba(248, 113, 113, 0.9);
+}
+
+.adminExecutiveGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.adminExecutiveCard {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminExecutiveCardHighlight {
+  border-color: rgba(230, 126, 34, 0.18);
+  background: rgba(230, 126, 34, 0.05);
+}
+
+.adminExecutiveCardHighlight .adminExecutiveValue {
+  color: #ffdcc4;
+}
+
+.adminExecutiveLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.adminExecutiveValue {
+  font-size: 1rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.adminExecutiveValueSmall {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminExecutiveMeta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+}
+
 .adminAnalyticsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
+}
+
+.adminAnalyticsGridWide {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 .adminAnalyticsCard {
@@ -2455,11 +2538,17 @@ img {
     padding: 16px 14px 24px;
   }
 
-  .adminKpiGrid {
+  .adminKpiGrid,
+  .adminKpiGridWide {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .adminAnalyticsGrid {
+  .adminExecutiveGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminAnalyticsGrid,
+  .adminAnalyticsGridWide {
     grid-template-columns: 1fr;
   }
 
@@ -2483,7 +2572,12 @@ img {
     margin-left: 0;
   }
 
-  .adminKpiGrid {
+  .adminKpiGrid,
+  .adminKpiGridWide {
+    grid-template-columns: 1fr;
+  }
+
+  .adminExecutiveGrid {
     grid-template-columns: 1fr;
   }
 

@@ -248,6 +248,211 @@ function buildOrderCopyText(order) {
   return lines.join("\n");
 }
 
+function getTodayKey() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
+
+function getYesterdayKey() {
+  const t = new Date();
+  t.setDate(t.getDate() - 1);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
+
+function getStartOfThisWeek() {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  const day = t.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  t.setDate(t.getDate() - diff);
+  return t;
+}
+
+function getStartOfThisMonth() {
+  const t = new Date();
+  t.setDate(1);
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+
+function getStartOfLastWeek() {
+  const start = getStartOfThisWeek();
+  const last = new Date(start);
+  last.setDate(last.getDate() - 7);
+  return last;
+}
+
+function getStartOfLastMonth() {
+  const t = new Date();
+  t.setMonth(t.getMonth() - 1);
+  t.setDate(1);
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+
+function computeKpiMain(orders) {
+  if (!orders || orders.length === 0) {
+    return { salesToday: 0, salesWeek: 0, salesMonth: 0, ordersToday: 0, avgTicket: 0, unitsSold: 0 };
+  }
+  const todayKey = getTodayKey();
+  const startWeek = getStartOfThisWeek();
+  const startMonth = getStartOfThisMonth();
+  let salesToday = 0;
+  let salesWeek = 0;
+  let salesMonth = 0;
+  let ordersToday = 0;
+  let totalAmount = 0;
+  let unitsSold = 0;
+  orders.forEach((o) => {
+    const date = new Date(o.createdAt);
+    const total = Number(o.total || 0);
+    totalAmount += total;
+    if (getDateKey(o.createdAt) === todayKey) {
+      salesToday += total;
+      ordersToday += 1;
+    }
+    if (date >= startWeek) salesWeek += total;
+    if (date >= startMonth) salesMonth += total;
+    (o.items || []).forEach((it) => { unitsSold += Number(it.qty || 0); });
+  });
+  return {
+    salesToday,
+    salesWeek,
+    salesMonth,
+    ordersToday,
+    avgTicket: orders.length ? Math.round(totalAmount / orders.length) : 0,
+    unitsSold,
+  };
+}
+
+function computeComparatives(orders) {
+  if (!orders || orders.length === 0) return { todayVsYesterday: null, weekVsLastWeek: null, monthVsLastMonth: null };
+  const todayKey = getTodayKey();
+  const yesterdayKey = getYesterdayKey();
+  const startWeek = getStartOfThisWeek();
+  const endWeek = new Date(startWeek);
+  endWeek.setDate(endWeek.getDate() + 7);
+  const startLastWeek = getStartOfLastWeek();
+  const startMonth = getStartOfThisMonth();
+  const startLastMonth = getStartOfLastMonth();
+  let salesToday = 0, salesYesterday = 0, salesWeek = 0, salesLastWeek = 0, salesMonth = 0, salesLastMonth = 0;
+  orders.forEach((o) => {
+    const d = new Date(o.createdAt);
+    const k = getDateKey(o.createdAt);
+    const t = Number(o.total || 0);
+    if (k === todayKey) salesToday += t;
+    if (k === yesterdayKey) salesYesterday += t;
+    if (d >= startWeek && d < endWeek) salesWeek += t;
+    if (d >= startLastWeek && d < startWeek) salesLastWeek += t;
+    if (d >= startMonth) salesMonth += t;
+    if (d >= startLastMonth && d < startMonth) salesLastMonth += t;
+  });
+  const pct = (curr, prev) => (prev === 0 ? (curr === 0 ? "igual" : 100) : Math.round(((curr - prev) / prev) * 100));
+  return {
+    todayVsYesterday: salesYesterday > 0 || salesToday > 0 ? pct(salesToday, salesYesterday) : null,
+    weekVsLastWeek: salesLastWeek > 0 || salesWeek > 0 ? pct(salesWeek, salesLastWeek) : null,
+    monthVsLastMonth: salesLastMonth > 0 || salesMonth > 0 ? pct(salesMonth, salesLastMonth) : null,
+  };
+}
+
+function computeExecutiveSummary(orders) {
+  if (!orders || orders.length === 0) {
+    return { bestCustomerSpend: null, bestCustomerOrders: null, topProductUnits: null, topProductRevenue: null, topPayment: null, busiestHour: null };
+  }
+  const byCustomerAmount = {};
+  const byCustomerOrders = {};
+  const byProductUnits = {};
+  const byProductRevenue = {};
+  const byPayment = {};
+  const byHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+  orders.forEach((o) => {
+    const name = (o.customer?.name || "").trim() || "—";
+    byCustomerOrders[name] = (byCustomerOrders[name] || 0) + 1;
+    byCustomerAmount[name] = (byCustomerAmount[name] || 0) + Number(o.total || 0);
+    const method = o.paymentMethod || "—";
+    byPayment[method] = (byPayment[method] || 0) + 1;
+    const h = new Date(o.createdAt).getHours();
+    if (h >= 0 && h < 24) byHour[h].count += 1;
+    (o.items || []).forEach((it) => {
+      const key = it.name || it.id || "—";
+      byProductUnits[key] = (byProductUnits[key] || 0) + Number(it.qty || 0);
+      byProductRevenue[key] = (byProductRevenue[key] || 0) + Number(it.total || 0);
+    });
+  });
+  const bestByAmount = Object.entries(byCustomerAmount).sort((a, b) => b[1] - a[1])[0];
+  const bestByOrders = Object.entries(byCustomerOrders).sort((a, b) => b[1] - a[1])[0];
+  const topByUnits = Object.entries(byProductUnits).sort((a, b) => b[1] - a[1])[0];
+  const topByRevenue = Object.entries(byProductRevenue).sort((a, b) => b[1] - a[1])[0];
+  const topPay = Object.entries(byPayment).sort((a, b) => b[1] - a[1])[0];
+  const busyHour = byHour.filter((x) => x.count > 0).sort((a, b) => b.count - a.count)[0];
+  return {
+    bestCustomerSpend: bestByAmount ? { name: bestByAmount[0], amount: bestByAmount[1] } : null,
+    bestCustomerOrders: bestByOrders ? { name: bestByOrders[0], count: bestByOrders[1] } : null,
+    topProductUnits: topByUnits ? { name: topByUnits[0], qty: topByUnits[1] } : null,
+    topProductRevenue: topByRevenue ? { name: topByRevenue[0], revenue: topByRevenue[1] } : null,
+    topPayment: topPay ? { method: topPay[0], count: topPay[1] } : null,
+    busiestHour: busyHour ? { hour: busyHour.hour, count: busyHour.count } : null,
+  };
+}
+
+function computeTopClientsBySpend(orders, limit = 5) {
+  if (!orders || orders.length === 0) return [];
+  const byCustomer = {};
+  orders.forEach((o) => {
+    const name = (o.customer?.name || "").trim() || "—";
+    if (!byCustomer[name]) byCustomer[name] = { name, amount: 0, orders: 0 };
+    byCustomer[name].amount += Number(o.total || 0);
+    byCustomer[name].orders += 1;
+  });
+  return Object.values(byCustomer)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+}
+
+function computeTopClientsByOrders(orders, limit = 5) {
+  if (!orders || orders.length === 0) return [];
+  const byCustomer = {};
+  orders.forEach((o) => {
+    const name = (o.customer?.name || "").trim() || "—";
+    if (!byCustomer[name]) byCustomer[name] = { name, amount: 0, orders: 0 };
+    byCustomer[name].amount += Number(o.total || 0);
+    byCustomer[name].orders += 1;
+  });
+  return Object.values(byCustomer)
+    .sort((a, b) => b.orders - a.orders)
+    .slice(0, limit);
+}
+
+function computeTopProductsByUnits(orders, limit = 10) {
+  if (!orders || orders.length === 0) return [];
+  const byProduct = {};
+  orders.forEach((o) => {
+    (o.items || []).forEach((it) => {
+      const key = it.name || it.id || "—";
+      byProduct[key] = (byProduct[key] || 0) + Number(it.qty || 0);
+    });
+  });
+  return Object.entries(byProduct)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name, qty]) => ({ name, qty }));
+}
+
+function computeTopProductsByRevenue(orders, limit = 10) {
+  if (!orders || orders.length === 0) return [];
+  const byProduct = {};
+  orders.forEach((o) => {
+    (o.items || []).forEach((it) => {
+      const key = it.name || it.id || "—";
+      byProduct[key] = (byProduct[key] || 0) + Number(it.total || 0);
+    });
+  });
+  return Object.entries(byProduct)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name, revenue]) => ({ name, revenue }));
+}
+
 function AdminOrdersContent() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -283,24 +488,16 @@ function AdminOrdersContent() {
     [timeFilteredOrders, statusFilter]
   );
 
+  const kpiMain = useMemo(() => computeKpiMain(orders), [orders]);
+  const comparatives = useMemo(() => computeComparatives(orders), [orders]);
+  const executiveSummary = useMemo(() => computeExecutiveSummary(orders), [orders]);
   const todayStats = useMemo(() => computeTodayStats(orders), [orders]);
-  const salesByDay = useMemo(() => computeSalesByDay(orders, 7), [orders]);
+  const salesByDay = useMemo(() => computeSalesByDay(orders, 14), [orders]);
   const ordersByHour = useMemo(() => computeOrdersByHour(orders), [orders]);
-  const topProductsList = useMemo(() => {
-    const global = computeGlobalStats(orders);
-    if (!global.topProduct) return [];
-    const byProduct = {};
-    (orders || []).forEach((o) => {
-      (o.items || []).forEach((it) => {
-        const key = it.name || it.id || "—";
-        byProduct[key] = (byProduct[key] || 0) + Number(it.qty || 0);
-      });
-    });
-    return Object.entries(byProduct)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, qty]) => ({ name, qty }));
-  }, [orders]);
+  const topProductsByUnits = useMemo(() => computeTopProductsByUnits(orders, 10), [orders]);
+  const topProductsByRevenue = useMemo(() => computeTopProductsByRevenue(orders, 10), [orders]);
+  const topClientsBySpend = useMemo(() => computeTopClientsBySpend(orders, 5), [orders]);
+  const topClientsByOrders = useMemo(() => computeTopClientsByOrders(orders, 5), [orders]);
 
   const toggleExpanded = useCallback((orderId) => {
     setExpandedItems((prev) => {
@@ -412,37 +609,91 @@ function AdminOrdersContent() {
         </div>
       </header>
 
-      {/* 1. KPI */}
+      {/* 1. KPI principales */}
       <section className="adminSection">
         <h2 className="adminSectionTitle">KPI principales</h2>
-        <div className="adminKpiGrid">
-          <div className="adminKpiCard">
-            <span className="adminKpiLabel">Pedidos hoy</span>
-            <span className="adminKpiValue">{todayStats.totalOrders}</span>
+        <div className="adminKpiGrid adminKpiGridWide">
+          <div className="adminKpiCard adminKpiCardHighlight">
+            <span className="adminKpiLabel">Ventas hoy</span>
+            <span className="adminKpiValue">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
+            {comparatives.todayVsYesterday != null && comparatives.todayVsYesterday !== "igual" && (
+              <span className={`adminKpiDelta ${typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
+                {typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "+" : ""}{comparatives.todayVsYesterday}% vs ayer
+              </span>
+            )}
           </div>
           <div className="adminKpiCard">
-            <span className="adminKpiLabel">Ventas hoy</span>
-            <span className="adminKpiValue">${todayStats.totalAmount?.toLocaleString("es-AR") ?? 0}</span>
+            <span className="adminKpiLabel">Ventas semana</span>
+            <span className="adminKpiValue">${kpiMain.salesWeek?.toLocaleString("es-AR") ?? 0}</span>
+            {comparatives.weekVsLastWeek != null && comparatives.weekVsLastWeek !== "igual" && (
+              <span className={`adminKpiDelta ${typeof comparatives.weekVsLastWeek === "number" && comparatives.weekVsLastWeek >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
+                {typeof comparatives.weekVsLastWeek === "number" && comparatives.weekVsLastWeek >= 0 ? "+" : ""}{comparatives.weekVsLastWeek}% vs sem. ant.
+              </span>
+            )}
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Ventas mes</span>
+            <span className="adminKpiValue">${kpiMain.salesMonth?.toLocaleString("es-AR") ?? 0}</span>
+            {comparatives.monthVsLastMonth != null && comparatives.monthVsLastMonth !== "igual" && (
+              <span className={`adminKpiDelta ${typeof comparatives.monthVsLastMonth === "number" && comparatives.monthVsLastMonth >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
+                {typeof comparatives.monthVsLastMonth === "number" && comparatives.monthVsLastMonth >= 0 ? "+" : ""}{comparatives.monthVsLastMonth}% vs mes ant.
+              </span>
+            )}
+          </div>
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Pedidos hoy</span>
+            <span className="adminKpiValue">{kpiMain.ordersToday}</span>
           </div>
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ticket promedio</span>
-            <span className="adminKpiValue">${todayStats.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
+            <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
           </div>
           <div className="adminKpiCard">
-            <span className="adminKpiLabel">Más vendido</span>
-            <span className="adminKpiValue adminKpiValueSmall">{todayStats.topProduct?.name ?? "—"}</span>
-          </div>
-          <div className="adminKpiCard">
-            <span className="adminKpiLabel">Pago más usado</span>
-            <span className="adminKpiValue adminKpiValueSmall">{paymentMethodLabel(todayStats.topPaymentMethod?.method) ?? "—"}</span>
+            <span className="adminKpiLabel">Unidades vendidas</span>
+            <span className="adminKpiValue">{kpiMain.unitsSold?.toLocaleString("es-AR") ?? 0}</span>
           </div>
         </div>
       </section>
 
-      {/* 2. Analytics */}
+      {/* 2. Resumen ejecutivo del negocio */}
       <section className="adminSection">
-        <h2 className="adminSectionTitle">Analytics rápidas</h2>
-        <div className="adminAnalyticsGrid">
+        <h2 className="adminSectionTitle">Resumen ejecutivo</h2>
+        <div className="adminExecutiveGrid">
+          <div className="adminExecutiveCard adminExecutiveCardHighlight">
+            <span className="adminExecutiveLabel">Mejor cliente (gasto)</span>
+            <span className="adminExecutiveValue">{executiveSummary.bestCustomerSpend?.name ?? "—"}</span>
+            {executiveSummary.bestCustomerSpend && <span className="adminExecutiveMeta">${executiveSummary.bestCustomerSpend.amount?.toLocaleString("es-AR")}</span>}
+          </div>
+          <div className="adminExecutiveCard">
+            <span className="adminExecutiveLabel">Cliente más recurrente</span>
+            <span className="adminExecutiveValue">{executiveSummary.bestCustomerOrders?.name ?? "—"}</span>
+            {executiveSummary.bestCustomerOrders && <span className="adminExecutiveMeta">{executiveSummary.bestCustomerOrders.count} pedidos</span>}
+          </div>
+          <div className="adminExecutiveCard adminExecutiveCardHighlight">
+            <span className="adminExecutiveLabel">Producto más vendido</span>
+            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductUnits?.name ?? "—"}</span>
+            {executiveSummary.topProductUnits && <span className="adminExecutiveMeta">{executiveSummary.topProductUnits.qty} un.</span>}
+          </div>
+          <div className="adminExecutiveCard adminExecutiveCardHighlight">
+            <span className="adminExecutiveLabel">Producto que más factura</span>
+            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductRevenue?.name ?? "—"}</span>
+            {executiveSummary.topProductRevenue && <span className="adminExecutiveMeta">${executiveSummary.topProductRevenue.revenue?.toLocaleString("es-AR")}</span>}
+          </div>
+          <div className="adminExecutiveCard">
+            <span className="adminExecutiveLabel">Método de pago más usado</span>
+            <span className="adminExecutiveValue">{paymentMethodLabel(executiveSummary.topPayment?.method) ?? "—"}</span>
+          </div>
+          <div className="adminExecutiveCard">
+            <span className="adminExecutiveLabel">Franja con más pedidos</span>
+            <span className="adminExecutiveValue">{executiveSummary.busiestHour != null ? `${String(executiveSummary.busiestHour.hour).padStart(2, "0")}:00 (${executiveSummary.busiestHour.count})` : "—"}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Analytics detalladas */}
+      <section className="adminSection">
+        <h2 className="adminSectionTitle">Analytics detalladas</h2>
+        <div className="adminAnalyticsGrid adminAnalyticsGridWide">
           <div className="adminAnalyticsCard">
             <h3 className="adminAnalyticsCardTitle">Ventas por día</h3>
             <ul className="adminAnalyticsList">
@@ -464,7 +715,7 @@ function AdminOrdersContent() {
               {ordersByHour.length === 0 ? (
                 <li className="adminAnalyticsEmpty">Sin datos</li>
               ) : (
-                ordersByHour.slice(0, 5).map((x) => (
+                ordersByHour.slice(0, 8).map((x) => (
                   <li key={x.hour}>
                     <span>{String(x.hour).padStart(2, "0")}:00</span>
                     <span>{x.count} pedido{x.count !== 1 ? "s" : ""}</span>
@@ -474,12 +725,12 @@ function AdminOrdersContent() {
             </ul>
           </div>
           <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Top productos</h3>
+            <h3 className="adminAnalyticsCardTitle">Top productos (unidades)</h3>
             <ol className="adminAnalyticsList adminAnalyticsListOl">
-              {topProductsList.length === 0 ? (
+              {topProductsByUnits.length === 0 ? (
                 <li className="adminAnalyticsEmpty">Sin datos</li>
               ) : (
-                topProductsList.map((p, i) => (
+                topProductsByUnits.map((p, i) => (
                   <li key={p.name}>
                     <span>{i + 1}. {p.name}</span>
                     <span>{p.qty}</span>
@@ -488,10 +739,55 @@ function AdminOrdersContent() {
               )}
             </ol>
           </div>
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Top productos (facturación)</h3>
+            <ol className="adminAnalyticsList adminAnalyticsListOl">
+              {topProductsByRevenue.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                topProductsByRevenue.map((p, i) => (
+                  <li key={p.name}>
+                    <span>{i + 1}. {p.name}</span>
+                    <span>${p.revenue?.toLocaleString("es-AR")}</span>
+                  </li>
+                ))
+              )}
+            </ol>
+          </div>
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Top clientes (gasto)</h3>
+            <ul className="adminAnalyticsList">
+              {topClientsBySpend.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                topClientsBySpend.map((c, i) => (
+                  <li key={c.name}>
+                    <span>{i + 1}. {c.name}</span>
+                    <span>${c.amount?.toLocaleString("es-AR")} ({c.orders})</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div className="adminAnalyticsCard">
+            <h3 className="adminAnalyticsCardTitle">Top clientes (pedidos)</h3>
+            <ul className="adminAnalyticsList">
+              {topClientsByOrders.length === 0 ? (
+                <li className="adminAnalyticsEmpty">Sin datos</li>
+              ) : (
+                topClientsByOrders.map((c, i) => (
+                  <li key={c.name}>
+                    <span>{i + 1}. {c.name}</span>
+                    <span>{c.orders} — ${c.amount?.toLocaleString("es-AR")}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* 3. Filtros + Lista de pedidos */}
+      {/* 4. Filtros + Lista de pedidos operativos */}
       <section className="adminSection">
         <div className="adminFiltersRow">
           <h2 className="adminSectionTitle">Pedidos operativos</h2>
