@@ -44,6 +44,8 @@ body,
 
 html {
   scroll-behavior: smooth;
+  /* En mobile: reservar espacio al final para que el input no quede tapado al abrir el teclado */
+  scroll-padding-bottom: 120px;
 }
 
 body {
@@ -77,6 +79,11 @@ img {
   max-width: var(--container);
   margin: 0 auto;
   padding: 24px 20px;
+}
+
+/* Espacio inferior en mobile para que el contenido no quede bajo el CTA flotante */
+.mainContent {
+  padding-bottom: 0;
 }
 
 /* ===== Atoms ===== */
@@ -742,6 +749,9 @@ img {
   font-size: 14px;
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.25);
+  /* Que el input permanezca visible al abrir el teclado en mobile */
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 100px;
 }
 
 .searchInput:focus {
@@ -1268,11 +1278,11 @@ img {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 10px 12px calc(10px + var(--safeBottom));
+  padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + var(--safeBottom)) max(12px, env(safe-area-inset-left));
   background: linear-gradient(
     to top,
-    rgba(18, 18, 18, 0.94),
-    rgba(18, 18, 18, 0.72),
+    rgba(18, 18, 18, 0.96),
+    rgba(18, 18, 18, 0.78),
     rgba(18, 18, 18, 0)
   );
   z-index: 999;
@@ -1284,21 +1294,23 @@ img {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 18px;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
   font-weight: 1000;
+  font-size: 14px;
   background: linear-gradient(180deg, #ef8a32 0%, #e36414 100%);
   color: #111;
   border: 1px solid rgba(230, 126, 34, 0.35);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .mobileCtaPill {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 10px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
+  font-size: 12px;
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(0, 0, 0, 0.2);
   display: grid;
@@ -1357,6 +1369,10 @@ img {
     --navH: 64px;
   }
 
+  .mainContent {
+    padding-bottom: 72px;
+  }
+
   .navInner {
     padding: 0 14px;
   }
@@ -1375,7 +1391,27 @@ img {
   }
 
   .menuPage {
+    gap: 14px;
+  }
+
+  .menuSection {
     gap: 18px;
+  }
+
+  .menuTop {
+    padding-bottom: 2px;
+  }
+
+  .categoryBlock {
+    gap: 12px;
+  }
+
+  .categoryHeader {
+    margin-top: 4px;
+  }
+
+  .productsGrid {
+    gap: 14px;
   }
 
   .hero {
@@ -1427,6 +1463,7 @@ img {
 
   .searchWrap {
     width: 100%;
+    min-width: 0;
   }
 
   .categoryHeader {
@@ -1459,6 +1496,12 @@ img {
 @media (max-width: 520px) {
   :root {
     --navH: 62px;
+  }
+
+  .mainContent {
+    padding-bottom: 76px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .container {
@@ -1515,7 +1558,44 @@ img {
   }
 
   .menuPage {
-    gap: 16px;
+    gap: 12px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .menuSection {
+    gap: 14px;
+  }
+
+  .menuTop {
+    padding-bottom: 2px;
+  }
+
+  .searchInput {
+    padding: 10px 36px 10px 14px;
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .categoryBlock {
+    gap: 10px;
+  }
+
+  .categoryHeader {
+    margin-top: 2px;
+  }
+
+  .productsGrid {
+    gap: 12px;
+  }
+
+  .pCardContent {
+    padding: 12px 14px 16px;
+    gap: 10px;
+  }
+
+  .pCardImageWrap {
+    aspect-ratio: 4 / 3;
   }
 
   .hero {
@@ -1570,7 +1650,7 @@ img {
 
   .productsGrid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .pCard {
@@ -1708,13 +1788,20 @@ img {
 
   .mobileCtaBtn {
     max-width: 100%;
-    border-radius: 16px;
-    padding: 12px 14px;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 
 /* ===== Small mobile ===== */
 @media (max-width: 390px) {
+  .mainContent {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 72px;
+  }
+
   .container {
     padding: 14px 10px;
   }
@@ -1770,6 +1857,22 @@ img {
     font-size: 13px;
   }
 
+  .menuPage {
+    gap: 10px;
+  }
+
+  .menuSection {
+    gap: 12px;
+  }
+
+  .categoryBlock {
+    gap: 8px;
+  }
+
+  .productsGrid {
+    gap: 10px;
+  }
+
   .trustCard,
   .pCard,
   .cardPro,
@@ -1778,7 +1881,8 @@ img {
   }
 
   .pCardContent {
-    padding: 11px 12px 14px;
+    padding: 10px 12px 14px;
+    gap: 8px;
   }
 
   .pCardTitle {

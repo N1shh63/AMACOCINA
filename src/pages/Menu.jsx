@@ -107,10 +107,17 @@ export default function Menu() {
           <div className="searchWrap">
             <input
               className="searchInput"
-              type="text"
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
               placeholder="Buscar (milanesa, ensalada, empanadas...)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={(e) => {
+                if (window.matchMedia("(max-width: 768px)").matches) {
+                  setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+                }
+              }}
             />
             {query ? (
               <button className="searchClear" onClick={() => setQuery("")} aria-label="Limpiar">
