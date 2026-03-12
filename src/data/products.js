@@ -12,9 +12,10 @@ export const sides = [
   "Puré de calabaza",
 ]
 
-// Cada producto puede tener imagen opcional (string: path o URL).
-// Si no tiene "image", la card intenta cargar /products/{id}.jpg y usa placeholder si falla.
-export const products = [
+import productImages from "./productImages.js";
+
+// Cada producto tiene imagen desde src/assets/products/{id}.jpg si existe.
+const productsBase = [
   // PLATOS PRINCIPALES
   {
     id: "sandwich-milanesa",
@@ -155,4 +156,9 @@ export const products = [
     price: 3000,
     category: "ensaladas",
   },
-]
+];
+
+export const products = productsBase.map((p) => ({
+  ...p,
+  image: productImages[p.id] ?? null,
+}));

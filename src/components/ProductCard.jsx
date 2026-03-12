@@ -63,7 +63,7 @@ export default function ProductCard({ product }) {
         {showImage ? (
           <img
             src={imageUrl}
-            alt=""
+            alt={product.name}
             className="pCardImage"
             loading="lazy"
             onError={() => setImageError(true)}
