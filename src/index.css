@@ -1431,6 +1431,16 @@ img {
 
   .menuTop {
     padding-bottom: 2px;
+    position: sticky;
+    top: calc(var(--navH) + var(--safeTop));
+    z-index: 40;
+    background: rgba(18, 18, 18, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    border-radius: 16px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    backdrop-filter: blur(10px);
   }
 
   .categoryBlock {
@@ -1513,6 +1523,15 @@ img {
   .searchInput:focus {
     border-color: rgba(230, 126, 34, 0.5);
     box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.12);
+  }
+
+  .searchClear {
+    width: 26px;
+    height: 26px;
+    right: 6px;
+    border-radius: 9px;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .categoryHeader {
@@ -1617,7 +1636,13 @@ img {
   }
 
   .menuTop {
-    padding-bottom: 2px;
+    position: sticky;
+    top: calc(var(--navH) + var(--safeTop));
+    z-index: 40;
+    border-bottom: none;
+    border-radius: 16px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
   }
 
   .searchInput {
@@ -1635,6 +1660,14 @@ img {
   .searchInput:focus {
     border-color: rgba(230, 126, 34, 0.5);
     box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.12);
+  }
+
+  .searchClear {
+    width: 26px;
+    height: 26px;
+    right: 6px;
+    border-radius: 9px;
+    font-size: 12px;
   }
 
   .categoryBlock {
@@ -1665,7 +1698,7 @@ img {
   }
 
   .pCardImageWrap {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 20 / 9;
   }
 
   .hero {
