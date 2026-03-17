@@ -453,6 +453,47 @@ function computeTopProductsByRevenue(orders, limit = 10) {
     .map(([name, revenue]) => ({ name, revenue }));
 }
 
+function computeOperationalStats(orders) {
+  const empty = {
+    pending: 0,
+    prep: 0,
+    shipped: 0,
+    active: 0,
+    deliveredToday: 0,
+    lastOrderAt: null,
+    lastOrderId: null,
+  };
+  if (!orders || orders.length === 0) return empty;
+
+  const todayKey = getTodayKey();
+  let pending = 0;
+  let prep = 0;
+  let shipped = 0;
+  let deliveredToday = 0;
+  let lastTs = null;
+  let lastOrderAt = null;
+  let lastOrderId = null;
+
+  orders.forEach((o) => {
+    const status = String(o.orderStatus || "").toLowerCase();
+    if (status === "nuevo") pending += 1;
+    if (status === "en_preparacion") prep += 1;
+    if (status === "enviado") shipped += 1;
+
+    if (status === "entregado" && getDateKey(o.createdAt) === todayKey) deliveredToday += 1;
+
+    const ts = o.createdAt ? Date.parse(o.createdAt) : NaN;
+    if (!Number.isNaN(ts) && (lastTs == null || ts > lastTs)) {
+      lastTs = ts;
+      lastOrderAt = o.createdAt;
+      lastOrderId = o.id ?? null;
+    }
+  });
+
+  const active = pending + prep + shipped;
+  return { pending, prep, shipped, active, deliveredToday, lastOrderAt, lastOrderId };
+}
+
 function AdminOrdersContent() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -498,6 +539,7 @@ function AdminOrdersContent() {
   const topProductsByRevenue = useMemo(() => computeTopProductsByRevenue(orders, 10), [orders]);
   const topClientsBySpend = useMemo(() => computeTopClientsBySpend(orders, 5), [orders]);
   const topClientsByOrders = useMemo(() => computeTopClientsByOrders(orders, 5), [orders]);
+  const operational = useMemo(() => computeOperationalStats(orders), [orders]);
 
   const toggleExpanded = useCallback((orderId) => {
     setExpandedItems((prev) => {
@@ -611,17 +653,35 @@ function AdminOrdersContent() {
 
       {/* 1. KPI principales */}
       <section className="adminSection">
-        <h2 className="adminSectionTitle">KPI principales</h2>
-        <div className="adminKpiGrid adminKpiGridWide">
-          <div className="adminKpiCard adminKpiCardHighlight">
+        <div className="adminSectionHead">
+          <div>
+            <h2 className="adminSectionTitle">KPI ejecutivos</h2>
+            <div className="adminSectionSubtitle">Estado del negocio en segundos</div>
+          </div>
+        </div>
+
+        <div className="adminKpiGrid adminKpiGridExecutive">
+          <div className="adminKpiCard adminKpiCardHero adminKpiCardHighlight">
             <span className="adminKpiLabel">Ventas hoy</span>
-            <span className="adminKpiValue">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
+            <span className="adminKpiValue adminKpiValueHero">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
             {comparatives.todayVsYesterday != null && comparatives.todayVsYesterday !== "igual" && (
               <span className={`adminKpiDelta ${typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
                 {typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "+" : ""}{comparatives.todayVsYesterday}% vs ayer
               </span>
             )}
           </div>
+
+          <div className="adminKpiCard adminKpiCardHero">
+            <span className="adminKpiLabel">Pedidos hoy</span>
+            <span className="adminKpiValue adminKpiValueHero">{kpiMain.ordersToday}</span>
+            <span className="adminKpiMeta">Activos: {operational.active}</span>
+          </div>
+
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Ticket promedio</span>
+            <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
+          </div>
+
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas semana</span>
             <span className="adminKpiValue">${kpiMain.salesWeek?.toLocaleString("es-AR") ?? 0}</span>
@@ -631,6 +691,7 @@ function AdminOrdersContent() {
               </span>
             )}
           </div>
+
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas mes</span>
             <span className="adminKpiValue">${kpiMain.salesMonth?.toLocaleString("es-AR") ?? 0}</span>
@@ -640,14 +701,7 @@ function AdminOrdersContent() {
               </span>
             )}
           </div>
-          <div className="adminKpiCard">
-            <span className="adminKpiLabel">Pedidos hoy</span>
-            <span className="adminKpiValue">{kpiMain.ordersToday}</span>
-          </div>
-          <div className="adminKpiCard">
-            <span className="adminKpiLabel">Ticket promedio</span>
-            <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
-          </div>
+
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Unidades vendidas</span>
             <span className="adminKpiValue">{kpiMain.unitsSold?.toLocaleString("es-AR") ?? 0}</span>
@@ -657,7 +711,12 @@ function AdminOrdersContent() {
 
       {/* 2. Resumen ejecutivo del negocio */}
       <section className="adminSection">
-        <h2 className="adminSectionTitle">Resumen ejecutivo</h2>
+        <div className="adminSectionHead">
+          <div>
+            <h2 className="adminSectionTitle">Salud del negocio</h2>
+            <div className="adminSectionSubtitle">Clientes, productos y hábitos de compra</div>
+          </div>
+        </div>
         <div className="adminExecutiveGrid">
           <div className="adminExecutiveCard adminExecutiveCardHighlight">
             <span className="adminExecutiveLabel">Mejor cliente (gasto)</span>
@@ -690,9 +749,54 @@ function AdminOrdersContent() {
         </div>
       </section>
 
-      {/* 3. Analytics detalladas */}
+      {/* 3. Control operativo */}
       <section className="adminSection">
-        <h2 className="adminSectionTitle">Analytics detalladas</h2>
+        <div className="adminSectionHead">
+          <div>
+            <h2 className="adminSectionTitle">Control operativo</h2>
+            <div className="adminSectionSubtitle">Seguimiento rápido del flujo de pedidos</div>
+          </div>
+        </div>
+
+        <div className="adminOpGrid">
+          <div className="adminOpCard">
+            <span className="adminOpLabel">Pendientes</span>
+            <span className="adminOpValue">{operational.pending}</span>
+            <span className="adminOpMeta">Estado: Nuevo</span>
+          </div>
+          <div className="adminOpCard">
+            <span className="adminOpLabel">En preparación</span>
+            <span className="adminOpValue">{operational.prep}</span>
+            <span className="adminOpMeta">Cocina</span>
+          </div>
+          <div className="adminOpCard">
+            <span className="adminOpLabel">Enviado</span>
+            <span className="adminOpValue">{operational.shipped}</span>
+            <span className="adminOpMeta">Logística</span>
+          </div>
+          <div className="adminOpCard adminOpCardHighlight">
+            <span className="adminOpLabel">Entregados hoy</span>
+            <span className="adminOpValue">{operational.deliveredToday}</span>
+            <span className="adminOpMeta">Cierre del día</span>
+          </div>
+          <div className="adminOpCard adminOpCardWide">
+            <span className="adminOpLabel">Último pedido</span>
+            <span className="adminOpValue adminOpValueSmall">
+              {operational.lastOrderAt ? `${formatTime(operational.lastOrderAt)} · #${operational.lastOrderId ?? "—"}` : "—"}
+            </span>
+            <span className="adminOpMeta">{operational.lastOrderAt ? formatDate(operational.lastOrderAt) : "Sin actividad todavía"}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Analytics detalladas */}
+      <section className="adminSection">
+        <div className="adminSectionHead">
+          <div>
+            <h2 className="adminSectionTitle">Analytics</h2>
+            <div className="adminSectionSubtitle">Detalle para decisiones: días, horas, productos y clientes</div>
+          </div>
+        </div>
         <div className="adminAnalyticsGrid adminAnalyticsGridWide">
           <div className="adminAnalyticsCard">
             <h3 className="adminAnalyticsCardTitle">Ventas por día</h3>

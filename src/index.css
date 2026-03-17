@@ -2092,8 +2092,16 @@ img {
   margin-bottom: 28px;
 }
 
-.adminSectionTitle {
+.adminSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 0 14px;
+}
+
+.adminSectionTitle {
+  margin: 0;
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -2101,9 +2109,22 @@ img {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.adminSectionSubtitle {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 .adminKpiGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.adminKpiGridExecutive {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -2115,6 +2136,19 @@ img {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.adminKpiCardHero {
+  padding: 16px 18px;
+  border-radius: 14px;
+  grid-column: span 6;
+}
+
+.adminKpiMeta {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 650;
 }
 
 .adminKpiLabel {
@@ -2129,6 +2163,11 @@ img {
   font-size: 1.25rem;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.95);
+}
+
+.adminKpiValueHero {
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
 }
 
 .adminKpiValueSmall {
@@ -2164,6 +2203,57 @@ img {
 
 .adminKpiDeltaDown {
   color: rgba(248, 113, 113, 0.9);
+}
+
+.adminOpGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminOpCard {
+  grid-column: span 3;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminOpCardHighlight {
+  border-color: rgba(230, 126, 34, 0.18);
+  background: rgba(230, 126, 34, 0.05);
+}
+
+.adminOpCardWide {
+  grid-column: span 6;
+}
+
+.adminOpLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.adminOpValue {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.adminOpValueSmall {
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.adminOpMeta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 650;
 }
 
 .adminExecutiveGrid {
@@ -2605,6 +2695,23 @@ img {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .adminKpiGridExecutive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminKpiCardHero {
+    grid-column: auto;
+  }
+
+  .adminOpGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminOpCard,
+  .adminOpCardWide {
+    grid-column: auto;
+  }
+
   .adminExecutiveGrid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -2636,6 +2743,22 @@ img {
 
   .adminKpiGrid,
   .adminKpiGridWide {
+    grid-template-columns: 1fr;
+  }
+
+  .adminKpiGridExecutive {
+    grid-template-columns: 1fr;
+  }
+
+  .adminKpiCardHero {
+    padding: 14px 16px;
+  }
+
+  .adminKpiValueHero {
+    font-size: 1.45rem;
+  }
+
+  .adminOpGrid {
     grid-template-columns: 1fr;
   }
 
