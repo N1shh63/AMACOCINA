@@ -2507,60 +2507,6 @@ img {
   gap: 12px;
 }
 
-.adminDayToggleBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.adminDayToggleBtn:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.adminDayToggleBtnCollapsed {
-  opacity: 0.95;
-}
-
-.adminDayToggleLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.adminDayToggleHint {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.adminDayToggleRight {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  white-space: nowrap;
-}
-
-.adminDayToggleTotal {
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: #ffdcc4;
-}
-
-.adminDayToggleChevron {
-  font-size: 0.78rem;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.65);
-}
-
 .adminOrderCard {
   padding: 16px 18px;
   border-radius: 12px;
@@ -2830,15 +2776,5 @@ img {
 
   .adminOrderBtn {
     width: 100%;
-  }
-
-  .adminDayToggleBtn {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .adminDayToggleRight {
-    width: 100%;
-    justify-content: space-between;
   }
 }

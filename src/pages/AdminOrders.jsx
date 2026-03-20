@@ -505,7 +505,6 @@ function AdminOrdersContent() {
   const [viewMode, setViewMode] = useState("hoy");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [expandedItems, setExpandedItems] = useState(() => new Set());
-  const [collapsedDayKeys, setCollapsedDayKeys] = useState(() => new Set());
   const [cleanLoading, setCleanLoading] = useState(false);
   const [cleanConfirm, setCleanConfirm] = useState(false);
   const [cleanOlderDays, setCleanOlderDays] = useState(30);
@@ -557,22 +556,10 @@ function AdminOrdersContent() {
   }, []);
 
   useEffect(() => {
-    // Cuando cambiás filtros, volvemos a mostrar todos los días (layout consistente).
-    setCollapsedDayKeys(new Set());
-  }, [viewMode, statusFilter]);
-
-  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
-    let token = null;
-    try {
-      token = getAdminToken();
-    } catch (_) {
-      // Si el navegador bloquea localStorage (Safari/iOS en modo privado),
-      // no cortamos el render: dejamos token en null y mostramos error si aplica.
-      token = null;
-    }
+    const token = getAdminToken();
 
     getOrders({ limit: 200, offset: 0, exclude_order_status: "draft", token })
       .then((data) => {
@@ -646,28 +633,6 @@ function AdminOrdersContent() {
       .finally(() => setDeleteLoading(false));
   };
 
-  const handleUpdateOrder = useCallback(
-    (orderId, patchPayload) => {
-      setUpdatingId(orderId);
-      return updateOrderStatus(orderId, patchPayload, getAdminToken())
-        .then((updated) => {
-          // Ideal: actualizamos el estado en UI con el objeto devuelto por el backend.
-          if (updated?.id) {
-            setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-          } else {
-            refresh();
-          }
-        })
-        .catch((e) => {
-          if (e?.message?.includes("autorizado") || e?.message?.includes("No autorizado")) {
-            handleUnauthorized();
-          }
-        })
-        .finally(() => setUpdatingId(null));
-    },
-    [handleUnauthorized, refresh]
-  );
-
   return (
     <div className="adminDashboard">
       <header className="adminHeader">
@@ -709,6 +674,7 @@ function AdminOrdersContent() {
           <div className="adminKpiCard adminKpiCardHero">
             <span className="adminKpiLabel">Pedidos hoy</span>
             <span className="adminKpiValue adminKpiValueHero">{kpiMain.ordersToday}</span>
+            <span className="adminKpiMeta">Activos: {operational.active}</span>
           </div>
 
           <div className="adminKpiCard">
@@ -928,7 +894,7 @@ function AdminOrdersContent() {
       {/* 4. Filtros + Lista de pedidos operativos */}
       <section className="adminSection">
         <div className="adminFiltersRow">
-          <h2 className="adminSectionTitle">Pedidos por día</h2>
+          <h2 className="adminSectionTitle">Pedidos operativos</h2>
           <div className="adminFilters">
             <div className="adminFilterGroup">
               <span className="adminFilterLabel">Período</span>
@@ -1008,157 +974,94 @@ function AdminOrdersContent() {
             const dateKeys = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1));
             return dateKeys.map((dateKey) => (
               <div key={dateKey} className="adminDayBlock">
-                {(() => {
-                  const dayOrders = byDate[dateKey] || [];
-                  const dayCount = dayOrders.length;
-                  const dayTotal = dayOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
-                  const collapsed = collapsedDayKeys.has(dateKey);
-                  return (
-                    <>
-                      <button
-                        type="button"
-                        className={`adminDayToggleBtn ${collapsed ? "adminDayToggleBtnCollapsed" : ""}`}
-                        onClick={() =>
-                          setCollapsedDayKeys((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(dateKey)) next.delete(dateKey);
-                            else next.add(dateKey);
-                            return next;
-                          })
-                        }
-                        aria-expanded={!collapsed}
+                <div className="adminDayLabel">{getDayLabel(dateKey, byDate[dateKey][0]?.createdAt)}</div>
+                <div className="adminDayOrders">
+                  {(byDate[dateKey] || []).map((order) => {
+                    const isNew = (order.orderStatus || "").toLowerCase() === "nuevo";
+                    const statusSlug = (order.orderStatus || "").toLowerCase();
+                    const expanded = expandedItems.has(order.id);
+                    return (
+                      <div
+                        key={order.id}
+                        className={`adminOrderCard ${isNew ? "adminOrderCardNew" : ""}`}
                       >
-                        <div className="adminDayToggleLeft">
-                          <span className="adminDayLabel">{getDayLabel(dateKey, dayOrders[0]?.createdAt)}</span>
-                          <span className="adminDayToggleHint">{dayCount} pedido{dayCount !== 1 ? "s" : ""}</span>
+                        <div className="adminOrderCardHeader">
+                          {isNew && <span className="adminBadgeNew">Nuevo pedido</span>}
+                          <div className="adminOrderCardMeta">
+                            <span className="adminOrderTime">{formatTime(order.createdAt)}</span>
+                            <span className="adminOrderClient">{order.customer?.name || "—"}</span>
+                            <span className="adminOrderTotal">${order.total ?? "—"}</span>
+                            <span className="adminOrderPayment">{paymentMethodLabel(order.paymentMethod)}</span>
+                            <span className={`adminStatusPill adminStatusPill--${statusSlug === "en_preparacion" ? "prep" : statusSlug === "enviado" ? "enviado" : statusSlug === "entregado" ? "entregado" : "nuevo"}`}>
+                              {orderStatusLabel(order.orderStatus)}
+                            </span>
+                            <span className="adminStatusPill adminStatusPill--pay">{paymentStatusLabel(order.paymentStatus)}</span>
+                          </div>
                         </div>
-                        <div className="adminDayToggleRight">
-                          <span className="adminDayToggleTotal">${dayTotal.toLocaleString("es-AR")}</span>
-                          <span className="adminDayToggleChevron">{collapsed ? "Ver" : "Ocultar"}</span>
+                        <button
+                          type="button"
+                          className="adminOrderItemsToggle"
+                          onClick={() => toggleExpanded(order.id)}
+                          aria-expanded={expanded}
+                        >
+                          Items: {(order.items || []).length} — {expanded ? "Ocultar" : "Ver detalle"}
+                        </button>
+                        {expanded && (
+                          <ul className="adminOrderItems">
+                            {(order.items || []).map((it) => (
+                              <li key={it.id}>{it.qty}x {it.name} — ${it.total}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {order.customer?.notes?.trim() && expanded && (
+                          <div className="adminOrderNotes">Notas: {order.customer.notes.trim()}</div>
+                        )}
+                        <div className="adminOrderActions">
+                          {order.paymentStatus !== "pagado" && (
+                            <button type="button" className="btn btnSecondary adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { payment_status: "pagado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Confirmar pago
+                            </button>
+                          )}
+                          {order.orderStatus !== "en_preparacion" && (
+                            <button type="button" className="btn btnGhost adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "en_preparacion" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              En preparación
+                            </button>
+                          )}
+                          {order.orderStatus !== "enviado" && (
+                            <button type="button" className="btn btnGhost adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "enviado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Enviado
+                            </button>
+                          )}
+                          {order.orderStatus !== "entregado" && (
+                            <button type="button" className="btn btnPrimary adminOrderBtn" disabled={updatingId === order.id}
+                              onClick={() => { setUpdatingId(order.id); updateOrderStatus(order.id, { order_status: "entregado" }, getAdminToken()).then(() => refresh()).catch((e) => { if (e?.message?.includes("autorizado")) handleUnauthorized(); }).finally(() => setUpdatingId(null)); }}>
+                              Entregado
+                            </button>
+                          )}
+                          <button type="button" className="btn btnGhost adminOrderBtn" onClick={() => handleCopyOrder(order)}>
+                            Copiar pedido
+                          </button>
+                          <button type="button" className="btn btnGhost adminOrderBtn adminOrderBtnDanger" disabled={updatingId === order.id || deleteLoading}
+                            onClick={() => setDeleteConfirmId(deleteConfirmId === order.id ? null : order.id)}>
+                            Borrar
+                          </button>
                         </div>
-                      </button>
-
-                      {!collapsed && (
-                        <div className="adminDayOrders">
-                          {dayOrders.map((order) => {
-                            const isNew = (order.orderStatus || "").toLowerCase() === "nuevo";
-                            const statusSlug = (order.orderStatus || "").toLowerCase();
-                            const expanded = expandedItems.has(order.id);
-                            return (
-                              <div
-                                key={order.id}
-                                className={`adminOrderCard ${isNew ? "adminOrderCardNew" : ""}`}
-                              >
-                                <div className="adminOrderCardHeader">
-                                  {isNew && <span className="adminBadgeNew">Nuevo pedido</span>}
-                                  <div className="adminOrderCardMeta">
-                                    <span className="adminOrderTime">{formatTime(order.createdAt)}</span>
-                                    <span className="adminOrderClient">{order.customer?.name || "—"}</span>
-                                    <span className="adminOrderTotal">${order.total ?? "—"}</span>
-                                    <span className="adminOrderPayment">{paymentMethodLabel(order.paymentMethod)}</span>
-                                    <span className={`adminStatusPill adminStatusPill--${statusSlug === "en_preparacion" ? "prep" : statusSlug === "enviado" ? "enviado" : statusSlug === "entregado" ? "entregado" : "nuevo"}`}>
-                                      {orderStatusLabel(order.orderStatus)}
-                                    </span>
-                                    <span className="adminStatusPill adminStatusPill--pay">{paymentStatusLabel(order.paymentStatus)}</span>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="adminOrderItemsToggle"
-                                  onClick={() => toggleExpanded(order.id)}
-                                  aria-expanded={expanded}
-                                >
-                                  Items: {(order.items || []).length} — {expanded ? "Ocultar" : "Ver detalle"}
-                                </button>
-                                {expanded && (
-                                  <ul className="adminOrderItems">
-                                    {(order.items || []).map((it) => (
-                                      <li key={it.id}>{it.qty}x {it.name} — ${it.total}</li>
-                                    ))}
-                                  </ul>
-                                )}
-                                {order.customer?.notes?.trim() && expanded && (
-                                  <div className="adminOrderNotes">Notas: {order.customer.notes.trim()}</div>
-                                )}
-                                <div className="adminOrderActions">
-                                  {order.paymentStatus !== "pagado" && (
-                                    <button
-                                      type="button"
-                                      className="btn btnSecondary adminOrderBtn"
-                                      disabled={updatingId === order.id}
-                                      onClick={() => handleUpdateOrder(order.id, { payment_status: "pagado" })}
-                                    >
-                                      Confirmar pago
-                                    </button>
-                                  )}
-                                  {order.orderStatus !== "en_preparacion" && (
-                                    <button
-                                      type="button"
-                                      className="btn btnGhost adminOrderBtn"
-                                      disabled={updatingId === order.id}
-                                      onClick={() => handleUpdateOrder(order.id, { order_status: "en_preparacion" })}
-                                    >
-                                      En preparación
-                                    </button>
-                                  )}
-                                  {order.orderStatus !== "enviado" && (
-                                    <button
-                                      type="button"
-                                      className="btn btnGhost adminOrderBtn"
-                                      disabled={updatingId === order.id}
-                                      onClick={() => handleUpdateOrder(order.id, { order_status: "enviado" })}
-                                    >
-                                      Enviado
-                                    </button>
-                                  )}
-                                  {order.orderStatus !== "entregado" && (
-                                    <button
-                                      type="button"
-                                      className="btn btnPrimary adminOrderBtn"
-                                      disabled={updatingId === order.id}
-                                      onClick={() => handleUpdateOrder(order.id, { order_status: "entregado" })}
-                                    >
-                                      Entregado
-                                    </button>
-                                  )}
-                                  <button type="button" className="btn btnGhost adminOrderBtn" onClick={() => handleCopyOrder(order)}>
-                                    Copiar pedido
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btnGhost adminOrderBtn adminOrderBtnDanger"
-                                    disabled={updatingId === order.id || deleteLoading}
-                                    onClick={() => setDeleteConfirmId(deleteConfirmId === order.id ? null : order.id)}
-                                  >
-                                    Borrar
-                                  </button>
-                                </div>
-                                {deleteConfirmId === order.id && (
-                                  <div className="adminDeleteConfirm">
-                                    <p>¿Borrar pedido #{order.id}? No se puede deshacer.</p>
-                                    <div className="adminDeleteConfirmActions">
-                                      <button
-                                        type="button"
-                                        className="btn btnPrimary adminBtnDanger"
-                                        disabled={deleteLoading}
-                                        onClick={() => handleDeleteOrder(order.id)}
-                                      >
-                                        {deleteLoading ? "Borrando..." : "Sí, borrar"}
-                                      </button>
-                                      <button type="button" className="btn btnGhost" disabled={deleteLoading} onClick={() => setDeleteConfirmId(null)}>
-                                        Cancelar
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                        {deleteConfirmId === order.id && (
+                          <div className="adminDeleteConfirm">
+                            <p>¿Borrar pedido #{order.id}? No se puede deshacer.</p>
+                            <div className="adminDeleteConfirmActions">
+                              <button type="button" className="btn btnPrimary adminBtnDanger" disabled={deleteLoading} onClick={() => handleDeleteOrder(order.id)}>{deleteLoading ? "Borrando..." : "Sí, borrar"}</button>
+                              <button type="button" className="btn btnGhost" disabled={deleteLoading} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ));
           })()}
