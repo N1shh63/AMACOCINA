@@ -565,7 +565,14 @@ function AdminOrdersContent() {
     let cancelled = false;
     setLoading(true);
     setError("");
-    const token = getAdminToken();
+    let token = null;
+    try {
+      token = getAdminToken();
+    } catch (_) {
+      // Si el navegador bloquea localStorage (Safari/iOS en modo privado),
+      // no cortamos el render: dejamos token en null y mostramos error si aplica.
+      token = null;
+    }
 
     getOrders({ limit: 200, offset: 0, exclude_order_status: "draft", token })
       .then((data) => {
