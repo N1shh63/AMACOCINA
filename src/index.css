@@ -2262,6 +2262,10 @@ img {
   gap: 12px;
 }
 
+.adminExecutiveGridCompact {
+  gap: 10px;
+}
+
 .adminExecutiveCard {
   padding: 14px 16px;
   border-radius: 12px;
@@ -2270,6 +2274,11 @@ img {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.adminExecutiveCardCompact {
+  padding: 11px 12px;
+  border-radius: 10px;
 }
 
 .adminExecutiveCardHighlight {
