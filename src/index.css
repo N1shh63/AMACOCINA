@@ -2089,7 +2089,7 @@ img {
 }
 
 .adminSection {
-  margin-bottom: 28px;
+  margin-bottom: 34px;
 }
 
 .adminSectionHead {
@@ -2125,17 +2125,17 @@ img {
 
 .adminKpiGridExecutive {
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .adminKpiCard {
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .adminKpiCardHero {
@@ -2192,9 +2192,10 @@ img {
 }
 
 .adminKpiDelta {
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 2px;
+  line-height: 1;
 }
 
 .adminKpiDeltaUp {
@@ -2263,7 +2264,7 @@ img {
 }
 
 .adminExecutiveGridCompact {
-  gap: 10px;
+  gap: 8px;
 }
 
 .adminExecutiveCard {
@@ -2277,7 +2278,7 @@ img {
 }
 
 .adminExecutiveCardCompact {
-  padding: 11px 12px;
+  padding: 9px 10px;
   border-radius: 10px;
 }
 
@@ -2291,7 +2292,7 @@ img {
 }
 
 .adminExecutiveLabel {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -2299,20 +2300,20 @@ img {
 }
 
 .adminExecutiveValue {
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.95);
 }
 
 .adminExecutiveValueSmall {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .adminExecutiveMeta {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.65);
   font-weight: 600;
 }
@@ -2706,6 +2707,7 @@ img {
 
   .adminKpiGridExecutive {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
   .adminKpiCardHero {
@@ -2723,6 +2725,10 @@ img {
 
   .adminExecutiveGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminSection {
+    margin-bottom: 28px;
   }
 
   .adminAnalyticsGrid,
@@ -2757,6 +2763,7 @@ img {
 
   .adminKpiGridExecutive {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .adminKpiCardHero {
@@ -2773,6 +2780,14 @@ img {
 
   .adminExecutiveGrid {
     grid-template-columns: 1fr;
+  }
+
+  .adminKpiCard {
+    padding: 14px 15px;
+  }
+
+  .adminSection {
+    margin-bottom: 24px;
   }
 
   .adminKpiValue {

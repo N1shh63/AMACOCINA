@@ -135,6 +135,13 @@ function paymentMethodLabel(method) {
   return map[method] || method;
 }
 
+function formatKpiDelta(value) {
+  if (value == null || value === "igual") return null;
+  const num = Number(value);
+  if (Number.isNaN(num)) return null;
+  return `(${num >= 0 ? "+" : ""}${num}%)`;
+}
+
 function paymentStatusLabel(status) {
   if (!status) return "—";
   const map = {
@@ -653,14 +660,12 @@ function AdminOrdersContent() {
         </div>
 
         <div className="adminKpiGrid adminKpiGridExecutive">
-          <div className="adminKpiCard adminKpiCardHighlight">
+          <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas hoy</span>
             <span className="adminKpiValue">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
-            {comparatives.todayVsYesterday != null && (
-              <span className={`adminKpiDelta ${comparatives.todayVsYesterday === "igual" || comparatives.todayVsYesterday >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
-                {comparatives.todayVsYesterday === "igual"
-                  ? "Igual que ayer"
-                  : `${comparatives.todayVsYesterday >= 0 ? "+" : ""}${comparatives.todayVsYesterday}% vs ayer`}
+            {formatKpiDelta(comparatives.todayVsYesterday) && (
+              <span className={`adminKpiDelta ${comparatives.todayVsYesterday >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
+                {formatKpiDelta(comparatives.todayVsYesterday)}
               </span>
             )}
           </div>
@@ -668,11 +673,9 @@ function AdminOrdersContent() {
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas semana</span>
             <span className="adminKpiValue">${kpiMain.salesWeek?.toLocaleString("es-AR") ?? 0}</span>
-            {comparatives.weekVsLastWeek != null && (
-              <span className={`adminKpiDelta ${comparatives.weekVsLastWeek === "igual" || comparatives.weekVsLastWeek >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
-                {comparatives.weekVsLastWeek === "igual"
-                  ? "Igual que semana anterior"
-                  : `${comparatives.weekVsLastWeek >= 0 ? "+" : ""}${comparatives.weekVsLastWeek}% vs semana anterior`}
+            {formatKpiDelta(comparatives.weekVsLastWeek) && (
+              <span className={`adminKpiDelta ${comparatives.weekVsLastWeek >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
+                {formatKpiDelta(comparatives.weekVsLastWeek)}
               </span>
             )}
           </div>
