@@ -530,16 +530,7 @@ function AdminOrdersContent() {
   );
 
   const kpiMain = useMemo(() => computeKpiMain(orders), [orders]);
-  const comparatives = useMemo(() => computeComparatives(orders), [orders]);
   const executiveSummary = useMemo(() => computeExecutiveSummary(orders), [orders]);
-  const todayStats = useMemo(() => computeTodayStats(orders), [orders]);
-  const salesByDay = useMemo(() => computeSalesByDay(orders, 14), [orders]);
-  const ordersByHour = useMemo(() => computeOrdersByHour(orders), [orders]);
-  const topProductsByUnits = useMemo(() => computeTopProductsByUnits(orders, 10), [orders]);
-  const topProductsByRevenue = useMemo(() => computeTopProductsByRevenue(orders, 10), [orders]);
-  const topClientsBySpend = useMemo(() => computeTopClientsBySpend(orders, 5), [orders]);
-  const topClientsByOrders = useMemo(() => computeTopClientsByOrders(orders, 5), [orders]);
-  const operational = useMemo(() => computeOperationalStats(orders), [orders]);
 
   const toggleExpanded = useCallback((orderId) => {
     setExpandedItems((prev) => {
@@ -656,7 +647,7 @@ function AdminOrdersContent() {
         <div className="adminSectionHead">
           <div>
             <h2 className="adminSectionTitle">KPI ejecutivos</h2>
-            <div className="adminSectionSubtitle">Estado del negocio en segundos</div>
+            <div className="adminSectionSubtitle">Resumen principal del negocio</div>
           </div>
         </div>
 
@@ -664,42 +655,21 @@ function AdminOrdersContent() {
           <div className="adminKpiCard adminKpiCardHero adminKpiCardHighlight">
             <span className="adminKpiLabel">Ventas hoy</span>
             <span className="adminKpiValue adminKpiValueHero">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
-            {comparatives.todayVsYesterday != null && comparatives.todayVsYesterday !== "igual" && (
-              <span className={`adminKpiDelta ${typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
-                {typeof comparatives.todayVsYesterday === "number" && comparatives.todayVsYesterday >= 0 ? "+" : ""}{comparatives.todayVsYesterday}% vs ayer
-              </span>
-            )}
-          </div>
-
-          <div className="adminKpiCard adminKpiCardHero">
-            <span className="adminKpiLabel">Pedidos hoy</span>
-            <span className="adminKpiValue adminKpiValueHero">{kpiMain.ordersToday}</span>
-            <span className="adminKpiMeta">Activos: {operational.active}</span>
-          </div>
-
-          <div className="adminKpiCard">
-            <span className="adminKpiLabel">Ticket promedio</span>
-            <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
           </div>
 
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas semana</span>
             <span className="adminKpiValue">${kpiMain.salesWeek?.toLocaleString("es-AR") ?? 0}</span>
-            {comparatives.weekVsLastWeek != null && comparatives.weekVsLastWeek !== "igual" && (
-              <span className={`adminKpiDelta ${typeof comparatives.weekVsLastWeek === "number" && comparatives.weekVsLastWeek >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
-                {typeof comparatives.weekVsLastWeek === "number" && comparatives.weekVsLastWeek >= 0 ? "+" : ""}{comparatives.weekVsLastWeek}% vs sem. ant.
-              </span>
-            )}
           </div>
 
           <div className="adminKpiCard">
             <span className="adminKpiLabel">Ventas mes</span>
             <span className="adminKpiValue">${kpiMain.salesMonth?.toLocaleString("es-AR") ?? 0}</span>
-            {comparatives.monthVsLastMonth != null && comparatives.monthVsLastMonth !== "igual" && (
-              <span className={`adminKpiDelta ${typeof comparatives.monthVsLastMonth === "number" && comparatives.monthVsLastMonth >= 0 ? "adminKpiDeltaUp" : "adminKpiDeltaDown"}`}>
-                {typeof comparatives.monthVsLastMonth === "number" && comparatives.monthVsLastMonth >= 0 ? "+" : ""}{comparatives.monthVsLastMonth}% vs mes ant.
-              </span>
-            )}
+          </div>
+
+          <div className="adminKpiCard">
+            <span className="adminKpiLabel">Ticket promedio</span>
+            <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
           </div>
 
           <div className="adminKpiCard">
@@ -709,15 +679,25 @@ function AdminOrdersContent() {
         </div>
       </section>
 
-      {/* 2. Resumen ejecutivo del negocio */}
+      {/* 2. KPI secundarios */}
       <section className="adminSection">
         <div className="adminSectionHead">
           <div>
-            <h2 className="adminSectionTitle">Salud del negocio</h2>
-            <div className="adminSectionSubtitle">Clientes, productos y hábitos de compra</div>
+            <h2 className="adminSectionTitle">KPI de negocio</h2>
+            <div className="adminSectionSubtitle">Productos, clientes y pagos clave</div>
           </div>
         </div>
         <div className="adminExecutiveGrid">
+          <div className="adminExecutiveCard adminExecutiveCardHighlight">
+            <span className="adminExecutiveLabel">Producto más vendido</span>
+            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductUnits?.name ?? "—"}</span>
+            {executiveSummary.topProductUnits && <span className="adminExecutiveMeta">{executiveSummary.topProductUnits.qty} un.</span>}
+          </div>
+          <div className="adminExecutiveCard">
+            <span className="adminExecutiveLabel">Producto que más factura</span>
+            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductRevenue?.name ?? "—"}</span>
+            {executiveSummary.topProductRevenue && <span className="adminExecutiveMeta">${executiveSummary.topProductRevenue.revenue?.toLocaleString("es-AR")}</span>}
+          </div>
           <div className="adminExecutiveCard adminExecutiveCardHighlight">
             <span className="adminExecutiveLabel">Mejor cliente (gasto)</span>
             <span className="adminExecutiveValue">{executiveSummary.bestCustomerSpend?.name ?? "—"}</span>
@@ -728,165 +708,9 @@ function AdminOrdersContent() {
             <span className="adminExecutiveValue">{executiveSummary.bestCustomerOrders?.name ?? "—"}</span>
             {executiveSummary.bestCustomerOrders && <span className="adminExecutiveMeta">{executiveSummary.bestCustomerOrders.count} pedidos</span>}
           </div>
-          <div className="adminExecutiveCard adminExecutiveCardHighlight">
-            <span className="adminExecutiveLabel">Producto más vendido</span>
-            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductUnits?.name ?? "—"}</span>
-            {executiveSummary.topProductUnits && <span className="adminExecutiveMeta">{executiveSummary.topProductUnits.qty} un.</span>}
-          </div>
-          <div className="adminExecutiveCard adminExecutiveCardHighlight">
-            <span className="adminExecutiveLabel">Producto que más factura</span>
-            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductRevenue?.name ?? "—"}</span>
-            {executiveSummary.topProductRevenue && <span className="adminExecutiveMeta">${executiveSummary.topProductRevenue.revenue?.toLocaleString("es-AR")}</span>}
-          </div>
           <div className="adminExecutiveCard">
             <span className="adminExecutiveLabel">Método de pago más usado</span>
             <span className="adminExecutiveValue">{paymentMethodLabel(executiveSummary.topPayment?.method) ?? "—"}</span>
-          </div>
-          <div className="adminExecutiveCard">
-            <span className="adminExecutiveLabel">Franja con más pedidos</span>
-            <span className="adminExecutiveValue">{executiveSummary.busiestHour != null ? `${String(executiveSummary.busiestHour.hour).padStart(2, "0")}:00 (${executiveSummary.busiestHour.count})` : "—"}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Control operativo */}
-      <section className="adminSection">
-        <div className="adminSectionHead">
-          <div>
-            <h2 className="adminSectionTitle">Control operativo</h2>
-            <div className="adminSectionSubtitle">Seguimiento rápido del flujo de pedidos</div>
-          </div>
-        </div>
-
-        <div className="adminOpGrid">
-          <div className="adminOpCard">
-            <span className="adminOpLabel">Pendientes</span>
-            <span className="adminOpValue">{operational.pending}</span>
-            <span className="adminOpMeta">Estado: Nuevo</span>
-          </div>
-          <div className="adminOpCard">
-            <span className="adminOpLabel">En preparación</span>
-            <span className="adminOpValue">{operational.prep}</span>
-            <span className="adminOpMeta">Cocina</span>
-          </div>
-          <div className="adminOpCard">
-            <span className="adminOpLabel">Enviado</span>
-            <span className="adminOpValue">{operational.shipped}</span>
-            <span className="adminOpMeta">Logística</span>
-          </div>
-          <div className="adminOpCard adminOpCardHighlight">
-            <span className="adminOpLabel">Entregados hoy</span>
-            <span className="adminOpValue">{operational.deliveredToday}</span>
-            <span className="adminOpMeta">Cierre del día</span>
-          </div>
-          <div className="adminOpCard adminOpCardWide">
-            <span className="adminOpLabel">Último pedido</span>
-            <span className="adminOpValue adminOpValueSmall">
-              {operational.lastOrderAt ? `${formatTime(operational.lastOrderAt)} · #${operational.lastOrderId ?? "—"}` : "—"}
-            </span>
-            <span className="adminOpMeta">{operational.lastOrderAt ? formatDate(operational.lastOrderAt) : "Sin actividad todavía"}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Analytics detalladas */}
-      <section className="adminSection">
-        <div className="adminSectionHead">
-          <div>
-            <h2 className="adminSectionTitle">Analytics</h2>
-            <div className="adminSectionSubtitle">Detalle para decisiones: días, horas, productos y clientes</div>
-          </div>
-        </div>
-        <div className="adminAnalyticsGrid adminAnalyticsGridWide">
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Ventas por día</h3>
-            <ul className="adminAnalyticsList">
-              {salesByDay.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                salesByDay.map((d) => (
-                  <li key={d.dateKey}>
-                    <span>{getDayLabel(d.dateKey, `${d.dateKey}T12:00:00`)}</span>
-                    <span>${d.total?.toLocaleString("es-AR")} ({d.count})</span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Pedidos por hora</h3>
-            <ul className="adminAnalyticsList">
-              {ordersByHour.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                ordersByHour.slice(0, 8).map((x) => (
-                  <li key={x.hour}>
-                    <span>{String(x.hour).padStart(2, "0")}:00</span>
-                    <span>{x.count} pedido{x.count !== 1 ? "s" : ""}</span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Top productos (unidades)</h3>
-            <ol className="adminAnalyticsList adminAnalyticsListOl">
-              {topProductsByUnits.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                topProductsByUnits.map((p, i) => (
-                  <li key={p.name}>
-                    <span>{i + 1}. {p.name}</span>
-                    <span>{p.qty}</span>
-                  </li>
-                ))
-              )}
-            </ol>
-          </div>
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Top productos (facturación)</h3>
-            <ol className="adminAnalyticsList adminAnalyticsListOl">
-              {topProductsByRevenue.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                topProductsByRevenue.map((p, i) => (
-                  <li key={p.name}>
-                    <span>{i + 1}. {p.name}</span>
-                    <span>${p.revenue?.toLocaleString("es-AR")}</span>
-                  </li>
-                ))
-              )}
-            </ol>
-          </div>
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Top clientes (gasto)</h3>
-            <ul className="adminAnalyticsList">
-              {topClientsBySpend.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                topClientsBySpend.map((c, i) => (
-                  <li key={c.name}>
-                    <span>{i + 1}. {c.name}</span>
-                    <span>${c.amount?.toLocaleString("es-AR")} ({c.orders})</span>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-          <div className="adminAnalyticsCard">
-            <h3 className="adminAnalyticsCardTitle">Top clientes (pedidos)</h3>
-            <ul className="adminAnalyticsList">
-              {topClientsByOrders.length === 0 ? (
-                <li className="adminAnalyticsEmpty">Sin datos</li>
-              ) : (
-                topClientsByOrders.map((c, i) => (
-                  <li key={c.name}>
-                    <span>{i + 1}. {c.name}</span>
-                    <span>{c.orders} — ${c.amount?.toLocaleString("es-AR")}</span>
-                  </li>
-                ))
-              )}
-            </ul>
           </div>
         </div>
       </section>
