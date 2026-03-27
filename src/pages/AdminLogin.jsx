@@ -31,7 +31,7 @@ export default function AdminLogin() {
     try {
       await adminLogin(username.trim(), password);
       setAdminLogged(true);
-      navigate("/admin/orders", { replace: true });
+      navigate("/admin", { replace: true });
     } catch (err) {
       setError(err?.message || "Credenciales incorrectas");
     } finally {

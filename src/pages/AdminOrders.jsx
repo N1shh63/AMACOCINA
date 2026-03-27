@@ -542,18 +542,6 @@ function AdminOrdersContent() {
     [timeFilteredOrders, statusFilter]
   );
 
-  const kpiMain = useMemo(() => computeKpiMain(orders), [orders]);
-  const comparatives = useMemo(() => computeComparatives(orders), [orders]);
-  const executiveSummary = useMemo(() => computeExecutiveSummary(orders), [orders]);
-  const topInsight = useMemo(() => {
-    const product = executiveSummary.topProductRevenue?.name;
-    const payment = paymentMethodLabel(executiveSummary.topPayment?.method);
-    if (product && payment && payment !== "—") return `${product} impulsa ventas y domina ${payment}.`;
-    if (product) return `${product} es el foco actual de facturación.`;
-    if (payment && payment !== "—") return `${payment} es el método de cobro más fuerte.`;
-    return "Aún no hay datos suficientes para un insight comercial.";
-  }, [executiveSummary]);
-
   const toggleExpanded = useCallback((orderId) => {
     setExpandedItems((prev) => {
       const next = new Set(prev);
@@ -649,9 +637,10 @@ function AdminOrdersContent() {
   return (
     <div className="adminDashboard">
       <header className="adminHeader">
-        <h1 className="adminTitle">Dashboard</h1>
-        <p className="adminSubtitle">Pedidos y ventas</p>
+        <h1 className="adminTitle">Pedidos</h1>
+        <p className="adminSubtitle">Gestión operativa del día</p>
         <div className="adminHeaderActions">
+          <Link to="/admin" className="btn btnPrimary">Volver al dashboard</Link>
           <Link to="/" className="adminLinkBack">← Menú</Link>
           <button
             type="button"
@@ -664,107 +653,7 @@ function AdminOrdersContent() {
         </div>
       </header>
 
-      {/* 1. KPI principales */}
-      <section className="adminSection adminSectionKpi">
-        <div className="adminSectionHead">
-          <div>
-            <h2 className="adminSectionTitle">KPI ejecutivos</h2>
-            <div className="adminSectionSubtitle">Lectura rápida para decidir en segundos</div>
-          </div>
-        </div>
-        <div className="adminKpiRows">
-          <div className="adminKpiGrid adminKpiGridExecutive adminKpiGridMain">
-            <div className="adminKpiCard">
-              <span className="adminKpiLabel">Ventas hoy</span>
-              <span className="adminKpiValue">${kpiMain.salesToday?.toLocaleString("es-AR") ?? 0}</span>
-            </div>
-            <div className="adminKpiCard">
-              <span className="adminKpiLabel">Ventas semana</span>
-              <span className="adminKpiValue">${kpiMain.salesWeek?.toLocaleString("es-AR") ?? 0}</span>
-            </div>
-            <div className="adminKpiCard">
-              <span className="adminKpiLabel">Ventas mes</span>
-              <span className="adminKpiValue">${kpiMain.salesMonth?.toLocaleString("es-AR") ?? 0}</span>
-            </div>
-            <div className="adminKpiCard">
-              <span className="adminKpiLabel">Ticket promedio</span>
-              <span className="adminKpiValue">${kpiMain.avgTicket?.toLocaleString("es-AR") ?? 0}</span>
-            </div>
-            <div className="adminKpiCard">
-              <span className="adminKpiLabel">Unidades vendidas</span>
-              <span className="adminKpiValue">{kpiMain.unitsSold?.toLocaleString("es-AR") ?? 0}</span>
-            </div>
-          </div>
-
-          <div className="adminKpiGrid adminKpiGridExecutive adminKpiGridSecondary">
-            <div className="adminKpiCard adminKpiCardSecondary">
-              <span className="adminKpiLabel">Diferencia vs ayer</span>
-              <span className={`adminKpiVariation ${comparatives.todayVsYesterday < 0 ? "adminKpiDeltaDown" : "adminKpiDeltaUp"}`}>
-                {formatKpiDelta(comparatives.todayVsYesterday) || "—"}
-              </span>
-            </div>
-            <div className="adminKpiCard adminKpiCardSecondary">
-              <span className="adminKpiLabel">Diferencia vs semana anterior</span>
-              <span className={`adminKpiVariation ${comparatives.weekVsLastWeek < 0 ? "adminKpiDeltaDown" : "adminKpiDeltaUp"}`}>
-                {formatKpiDelta(comparatives.weekVsLastWeek) || "—"}
-              </span>
-            </div>
-            <div className="adminKpiCard adminKpiCardSecondary">
-              <span className="adminKpiLabel">Mejor cliente</span>
-              <span className="adminKpiValue adminKpiValueSmall">{executiveSummary.bestCustomerSpend?.name ?? "—"}</span>
-              {executiveSummary.bestCustomerSpend && (
-                <span className="adminKpiDelta">${executiveSummary.bestCustomerSpend.amount?.toLocaleString("es-AR")}</span>
-              )}
-            </div>
-            <div className="adminKpiCard adminKpiCardSecondary">
-              <span className="adminKpiLabel">Producto más vendido</span>
-              <span className="adminKpiValue adminKpiValueSmall">{executiveSummary.topProductUnits?.name ?? "—"}</span>
-              {executiveSummary.topProductUnits && (
-                <span className="adminKpiDelta">{executiveSummary.topProductUnits.qty} un.</span>
-              )}
-            </div>
-            <div className="adminKpiCard adminKpiCardSecondary">
-              <span className="adminKpiLabel">Método de pago más usado</span>
-              <span className="adminKpiValue adminKpiValueSmall">{paymentMethodLabel(executiveSummary.topPayment?.method) ?? "—"}</span>
-              {executiveSummary.topPayment && (
-                <span className="adminKpiDelta">{executiveSummary.topPayment.count} pedidos</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Insights del negocio */}
-      <section className="adminSection adminSectionInsights">
-        <div className="adminSectionHead">
-          <div>
-            <h2 className="adminSectionTitle">Insights de negocio</h2>
-            <div className="adminSectionSubtitle">Señales comerciales para seguimiento diario</div>
-          </div>
-        </div>
-        <div className="adminExecutiveGrid adminExecutiveGridCompact">
-          <div className="adminExecutiveCard adminExecutiveCardCompact">
-            <span className="adminExecutiveLabel">Cliente más recurrente</span>
-            <span className="adminExecutiveValue">{executiveSummary.bestCustomerOrders?.name ?? "—"}</span>
-            {executiveSummary.bestCustomerOrders && <span className="adminExecutiveMeta">{executiveSummary.bestCustomerOrders.count} pedidos</span>}
-          </div>
-          <div className="adminExecutiveCard adminExecutiveCardCompact">
-            <span className="adminExecutiveLabel">Producto que más factura</span>
-            <span className="adminExecutiveValue adminExecutiveValueSmall">{executiveSummary.topProductRevenue?.name ?? "—"}</span>
-            {executiveSummary.topProductRevenue && <span className="adminExecutiveMeta">${executiveSummary.topProductRevenue.revenue?.toLocaleString("es-AR")}</span>}
-          </div>
-          <div className="adminExecutiveCard adminExecutiveCardCompact">
-            <span className="adminExecutiveLabel">Franja horaria más fuerte</span>
-            <span className="adminExecutiveValue">{formatBusyHour(executiveSummary.busiestHour)}</span>
-          </div>
-          <div className="adminExecutiveCard adminExecutiveCardCompact adminExecutiveCardInsight">
-            <span className="adminExecutiveLabel">Top insight comercial</span>
-            <span className="adminExecutiveValue adminExecutiveValueSmall">{topInsight}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Filtros + Lista de pedidos operativos */}
+      {/* Filtros + Lista de pedidos operativos */}
       <section className="adminSection adminSectionOps">
         <div className="adminFiltersRow">
           <h2 className="adminSectionTitle">Pedidos operativos</h2>

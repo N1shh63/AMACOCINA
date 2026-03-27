@@ -40,7 +40,7 @@ export default function Navbar() {
             )}
 
             <Link
-              to={isAdmin ? "/admin/orders" : "/admin/login"}
+              to={isAdmin ? "/admin" : "/admin/login"}
               className="navLink"
               style={{ fontSize: "12px", opacity: 0.82 }}
               aria-label="Panel admin"
