@@ -2089,7 +2089,7 @@ img {
 }
 
 .adminSection {
-  margin-bottom: 34px;
+  margin-bottom: 42px;
 }
 
 .adminSectionHead {
@@ -2110,11 +2110,23 @@ img {
 }
 
 .adminSectionSubtitle {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.adminSectionKpi {
+  margin-top: 8px;
+}
+
+.adminSectionInsights {
+  margin-top: 4px;
+}
+
+.adminSectionOps {
+  margin-top: 12px;
 }
 
 .adminKpiGrid {
@@ -2124,18 +2136,31 @@ img {
 }
 
 .adminKpiGridExecutive {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
 .adminKpiCard {
-  padding: 16px 18px;
+  padding: 18px 20px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.adminKpiRows {
+  display: grid;
+  gap: 16px;
+}
+
+.adminKpiGridMain .adminKpiCard {
+  min-height: 120px;
+}
+
+.adminKpiGridSecondary .adminKpiCard {
+  min-height: 92px;
 }
 
 .adminKpiCardHero {
@@ -2160,9 +2185,10 @@ img {
 }
 
 .adminKpiValue {
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.95);
+  line-height: 1.1;
 }
 
 .adminKpiValueHero {
@@ -2192,10 +2218,17 @@ img {
 }
 
 .adminKpiDelta {
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  margin-top: 2px;
+  margin-top: 4px;
   line-height: 1;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.adminKpiVariation {
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.15;
 }
 
 .adminKpiDeltaUp {
@@ -2264,7 +2297,7 @@ img {
 }
 
 .adminExecutiveGridCompact {
-  gap: 8px;
+  gap: 10px;
 }
 
 .adminExecutiveCard {
@@ -2278,7 +2311,7 @@ img {
 }
 
 .adminExecutiveCardCompact {
-  padding: 9px 10px;
+  padding: 11px 12px;
   border-radius: 10px;
 }
 
@@ -2292,7 +2325,7 @@ img {
 }
 
 .adminExecutiveLabel {
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -2300,9 +2333,10 @@ img {
 }
 
 .adminExecutiveValue {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.95);
+  line-height: 1.3;
 }
 
 .adminExecutiveValueSmall {
@@ -2313,9 +2347,14 @@ img {
 }
 
 .adminExecutiveMeta {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: rgba(255, 255, 255, 0.65);
   font-weight: 600;
+}
+
+.adminExecutiveCardInsight {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .adminAnalyticsGrid {
@@ -2375,7 +2414,7 @@ img {
 }
 
 .adminFiltersRow {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .adminFilters {
@@ -2495,20 +2534,36 @@ img {
 .adminOrderList {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
 
 .adminDayBlock {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.adminDayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 
 .adminDayLabel {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.5);
   text-transform: capitalize;
+}
+
+.adminDayMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 700;
 }
 
 .adminDayOrders {
@@ -2710,6 +2765,11 @@ img {
     gap: 12px;
   }
 
+  .adminKpiGridMain .adminKpiCard,
+  .adminKpiGridSecondary .adminKpiCard {
+    min-height: 0;
+  }
+
   .adminKpiCardHero {
     grid-column: auto;
   }
@@ -2729,6 +2789,12 @@ img {
 
   .adminSection {
     margin-bottom: 28px;
+  }
+
+  .adminDayHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .adminAnalyticsGrid,
@@ -2788,6 +2854,14 @@ img {
 
   .adminSection {
     margin-bottom: 24px;
+  }
+
+  .adminKpiValue {
+    font-size: 1.3rem;
+  }
+
+  .adminKpiVariation {
+    font-size: 0.88rem;
   }
 
   .adminKpiValue {
